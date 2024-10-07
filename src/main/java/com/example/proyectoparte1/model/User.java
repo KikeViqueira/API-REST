@@ -14,6 +14,7 @@ import java.util.StringJoiner;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class User {
     @Id
+    private String id;
     private String email;
     private String name;
     private String country;
