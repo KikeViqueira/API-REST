@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/movies")
@@ -39,11 +40,11 @@ public class MovieController {
 
     @GetMapping("/{movieId}")
     public ResponseEntity<Movie> obtenerPelicula(@PathVariable String movieId) {
-        Movie movie = movieService.obtenerMovie(movieId);
-        if (movie == null) {
+        Optional<Movie> movie = movieService.obtenerMovie(movieId);
+        if (movie.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(movie);
+        return ResponseEntity.ok(movie.get());
     }
 
     @PostMapping

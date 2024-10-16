@@ -23,9 +23,10 @@ public class UserController {
     }
 
     //Obtener un usuario mediante su email
-    @GetMapping("/{email}")
-    public ResponseEntity<User> obtenerUsuario(@PathVariable String email){
-        User usuario = userService.obtenerUsuario(email);
+    /*** CREO QUE ESTO HAY QUE CAMBIARLO POR ID ***/
+    @GetMapping("/{id}")
+    public ResponseEntity<User> obtenerUsuario(@PathVariable String id){
+        User usuario = userService.obtenerUsuario(id);
         if(usuario == null){
             return ResponseEntity.notFound().build();
         }
@@ -53,32 +54,47 @@ public class UserController {
         return ResponseEntity.ok(usuario);
     }
 
-    @DeleteMapping("/{email}")
-    public ResponseEntity<User> eliminarUsuario(@PathVariable String email){
-        User usuario = userService.obtenerUsuario(email);
+
+    /*** CREO QUE ESTO HAY QUE CAMBIARLO POR ID ***/
+    @DeleteMapping("/{id}")
+    public ResponseEntity<User> eliminarUsuario(@PathVariable String id){
+        User usuario = userService.obtenerUsuario(id);
         if(usuario == null){
             ResponseEntity.notFound().build();
         }
-        userService.eliminarUsuario(email);
+        userService.eliminarUsuario(id);
         return ResponseEntity.ok(usuario);
     }
 
-
-    @PutMapping
-    public ResponseEntity<User> modificarUsuario(@RequestBody String email, @RequestBody User user){
-        User usuario = userService.obtenerUsuario(email);
+    /*** CREO QUE ESTO HAY QUE CAMBIARLO POR ID ***/
+    @PatchMapping("/{userId}")
+    public ResponseEntity<User> modificarUsuario(@PathVariable String userId, @RequestBody User user){
+        User usuario = userService.obtenerUsuario(userId);
         if(usuario == null){
             ResponseEntity.notFound().build();
         }
-        User usuarioModificado = userService.modificarUsuario(email,user);
+        //En el caso de que los datos a cambiar sean el email o el aniversario damos un error por pantalla
+        if(user.getEmail() != null || user.getBirthday() != null){
+            return ResponseEntity.badRequest().build();
+        }
+        User usuarioModificado = userService.modificarUsuario(userId,user);
         if (usuarioModificado != null){
             return ResponseEntity.ok(usuarioModificado);
         }
         return ResponseEntity.notFound().build();
     }
 
-
-
-
-
+    // Eliminar un amigo del usuario
+    @DeleteMapping("/{userId}/friends/{friendId}")
+    public ResponseEntity<User> eliminarAmigo(@PathVariable String userId, @PathVariable String friendId) {
+        User usuario = userService.obtenerUsuario(userId);
+        if (usuario == null) {
+            return ResponseEntity.notFound().build();
+        }
+        User eliminado = userService.eliminarAmigo(userId, friendId);
+        if (eliminado == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(usuario);
+    }
 }

@@ -20,30 +20,17 @@ public class AssessmentService {
         this.assessmentRepository = assessmentRepository;
     }
 
-    public Page<Assessment> obtenerComentarios(String movieId, String userId, int page, int size, String sortBy, String direction) {
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
-        if(movieId != null && !movieId.isEmpty()) {
-            return obtenerComentariosPelicula(movieId, pageRequest);
-        }
-
-        if(userId != null && !userId.isEmpty()) {
-            return obtenerComentariosUsuario(userId, pageRequest);
-        }
-
-        return null;
-    }
-
 
     //Obtener los comentarios de una pelicula
-    public Page<Assessment> obtenerComentariosPelicula(String id, PageRequest pageRequest) {
-        Page<Assessment> assessments = assessmentRepository.findByMovieIdContaining(id, pageRequest);
-        return assessments;
+    public Page<Assessment> obtenerComentariosPelicula(String movieId,  int page, int size, String sortBy, String direction) {
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
+        return assessmentRepository.findByMovieIdContaining(movieId, pageRequest);
     }
 
     //Obtener comentarios de un usuario
-    public Page<Assessment> obtenerComentariosUsuario(String id,PageRequest pageRequest) {
-        Page<Assessment> assessments = assessmentRepository.findByUserIdContaining(id, pageRequest);
-        return assessments;
+    public Page<Assessment> obtenerComentariosUsuario(String userId, int page, int size, String sortBy, String direction) {
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
+        return assessmentRepository.findByUserIdContaining(userId, pageRequest);
     }
 
     //Anhadir un nuevo comentario a una pelicula
@@ -67,7 +54,12 @@ public class AssessmentService {
     }
 
     //Eliminar un comentario
-    public void eliminarComentario(Assessment assessment){
-        assessmentRepository.deleteById(assessment.getId());
+    public Assessment eliminarComentario(String assessmentId){
+        Optional<Assessment> optional = assessmentRepository.findById(assessmentId);
+        if(optional.isEmpty()){
+            return null;
+        }
+        assessmentRepository.deleteById(assessmentId);
+        return optional.get();
     }
 }
