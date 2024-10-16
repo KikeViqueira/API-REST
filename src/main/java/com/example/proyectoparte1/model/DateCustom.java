@@ -6,15 +6,15 @@ import java.util.Objects;
 import java.util.StringJoiner;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class Date {
+public class DateCustom {
     private Integer day;
     private Integer month;
     private Integer year;
 
-    public Date() {
+    public DateCustom() {
     }
 
-    public Date(Integer day, Integer month, Integer year) {
+    public DateCustom(Integer day, Integer month, Integer year) {
         this.day = day;
         this.month = month;
         this.year = year;
@@ -24,7 +24,7 @@ public class Date {
         return day;
     }
 
-    public Date setDay(Integer day) {
+    public DateCustom setDay(Integer day) {
         this.day = day;
         return this;
     }
@@ -33,7 +33,7 @@ public class Date {
         return month;
     }
 
-    public Date setMonth(Integer month) {
+    public DateCustom setMonth(Integer month) {
         this.month = month;
         return this;
     }
@@ -42,7 +42,7 @@ public class Date {
         return year;
     }
 
-    public Date setYear(Integer year) {
+    public DateCustom setYear(Integer year) {
         this.year = year;
         return this;
     }
@@ -51,8 +51,8 @@ public class Date {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Date date = (Date) o;
-        return Objects.equals(day, date.day) && Objects.equals(month, date.month) && Objects.equals(year, date.year);
+        DateCustom dateCustom = (DateCustom) o;
+        return Objects.equals(day, dateCustom.day) && Objects.equals(month, dateCustom.month) && Objects.equals(year, dateCustom.year);
     }
 
     @Override
@@ -62,7 +62,7 @@ public class Date {
 
     @Override
     public String toString() {
-        return new StringJoiner(", ", Date.class.getSimpleName() + "[", "]")
+        return new StringJoiner(", ", DateCustom.class.getSimpleName() + "[", "]")
                 .add("day=" + day)
                 .add("month=" + month)
                 .add("year=" + year)

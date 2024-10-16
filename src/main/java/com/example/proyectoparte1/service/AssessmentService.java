@@ -20,6 +20,10 @@ public class AssessmentService {
         this.assessmentRepository = assessmentRepository;
     }
 
+    public Assessment obtenerComentario(String commentId) {
+        return assessmentRepository.findById(commentId).orElse(null);
+    }
+
 
     //Obtener los comentarios de una pelicula
     public Page<Assessment> obtenerComentariosPelicula(String movieId,  int page, int size, String sortBy, String direction) {

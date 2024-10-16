@@ -1,11 +1,12 @@
 package com.example.proyectoparte1.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-import com.fasterxml.jackson.annotation.JsonFormat;
-
-import java.time.LocalDate;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.StringJoiner;
@@ -15,11 +16,17 @@ import java.util.StringJoiner;
 public class User {
     @Id
     private String id;
+
+    @NotBlank(message = "El email no puede estar vacio")
+    @Email
     private String email;
+
+    @NotBlank(message = "El nombre no puede estar vacio")
+    @Size(min = 2, message = "El nombre debe de tener un minimo de 2 caracteres")
     private String name;
     private String country;
     private String picture;
-    private Date birthday;
+    private DateCustom birthday;
     //Basta con guardar los atributos name y email, no toda la info del user
     private List<User> friends;
 
@@ -27,7 +34,7 @@ public class User {
     }
 
 
-    public User(String email, String name, String country, String picture, Date birthday, List<User> friends) {
+    public User(String email, String name, String country, String picture, DateCustom birthday, List<User> friends) {
         this.email = email;
         this.name = name;
         this.country = country;
@@ -52,12 +59,16 @@ public class User {
         return picture;
     }
 
-    public Date getBirthday() {
+    public DateCustom getBirthday() {
         return birthday;
     }
 
     public List<User> getFriends() {
         return friends;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public User setEmail(String email) {
@@ -80,7 +91,7 @@ public class User {
         return this;
     }
 
-    public User setBirthday(Date birthday) {
+    public User setBirthday(DateCustom birthday) {
         this.birthday = birthday;
         return this;
     }

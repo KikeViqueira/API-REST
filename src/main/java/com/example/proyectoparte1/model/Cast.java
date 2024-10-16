@@ -12,7 +12,7 @@ public class Cast extends Person {
     public Cast() {
     }
 
-    public Cast(String id, String name, String country, String picture, String biography, Date birthday, Date deathday, String character) {
+    public Cast(String id, String name, String country, String picture, String biography, DateCustom birthday, DateCustom deathday, String character) {
         super(id, name, country, picture, biography, birthday, deathday);
         this.character = character;
     }

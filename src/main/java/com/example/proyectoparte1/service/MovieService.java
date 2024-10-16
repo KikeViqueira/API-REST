@@ -1,6 +1,6 @@
 package com.example.proyectoparte1.service;
 
-import com.example.proyectoparte1.model.Date;
+import com.example.proyectoparte1.model.DateCustom;
 import com.example.proyectoparte1.model.Movie;
 import com.example.proyectoparte1.repository.MovieRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,8 +43,8 @@ public class MovieService {
         // Filtro por fecha de lanzamiento (conversión de LocalDate a Date personalizada)
         if (releaseDate != null) {
             // Convertimos LocalDate a tu clase personalizada Date
-            Date customDate = new Date(releaseDate.getDayOfMonth(), releaseDate.getMonthValue(), releaseDate.getYear());
-            return movieRepository.findByReleaseDate(customDate, pageRequest);
+            DateCustom customDateCustom = new DateCustom(releaseDate.getDayOfMonth(), releaseDate.getMonthValue(), releaseDate.getYear());
+            return movieRepository.findByReleaseDate(customDateCustom, pageRequest);
         }
 
         if(crew != null && !crew.isEmpty()) {
@@ -80,7 +80,7 @@ public class MovieService {
     }
 
     //Funcion aux para comparar y igualar los datos actualizados a la pelicula que buscamos
-    public Movie modificarPelicula(Movie movieOld, Movie movieNew) {
+    private Movie modificarPelicula(Movie movieOld, Movie movieNew) {
         // Solo actualiza si el campo en la nueva película no es null
         if (movieNew.getTitle() != null) {
             movieOld.setTitle(movieNew.getTitle());

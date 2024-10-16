@@ -18,7 +18,7 @@ public class Movie {
     private String tagline;
     private Collection collection;
     private List<String> genres;
-    private Date releaseDate;
+    private DateCustom releaseDateCustom;
     private List<String> keywords;
     private List<Producer> producers;
     //Se puede omitir el atributo Biography, que se hereda de la clase Persona
@@ -34,14 +34,14 @@ public class Movie {
     public Movie() {
     }
 
-    public Movie(String id, String title, String overview, String tagline, Collection collection, List<String> genres, Date releaseDate, List<String> keywords, List<Producer> producers, List<Crew> crew, List<Cast> cast, List<Resource> resources, Long budget, Status status, Integer runtime, Long revenue) {
+    public Movie(String id, String title, String overview, String tagline, Collection collection, List<String> genres, DateCustom releaseDateCustom, List<String> keywords, List<Producer> producers, List<Crew> crew, List<Cast> cast, List<Resource> resources, Long budget, Status status, Integer runtime, Long revenue) {
         this.id = id;
         this.title = title;
         this.overview = overview;
         this.tagline = tagline;
         this.collection = collection;
         this.genres = genres;
-        this.releaseDate = releaseDate;
+        this.releaseDateCustom = releaseDateCustom;
         this.keywords = keywords;
         this.producers = producers;
         this.crew = crew;
@@ -107,12 +107,12 @@ public class Movie {
         return this;
     }
 
-    public Date getReleaseDate() {
-        return releaseDate;
+    public DateCustom getReleaseDate() {
+        return releaseDateCustom;
     }
 
-    public Movie setReleaseDate(Date releaseDate) {
-        this.releaseDate = releaseDate;
+    public Movie setReleaseDate(DateCustom releaseDateCustom) {
+        this.releaseDateCustom = releaseDateCustom;
         return this;
     }
 
@@ -202,12 +202,12 @@ public class Movie {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Movie movie = (Movie) o;
-        return Objects.equals(id, movie.id) && Objects.equals(title, movie.title) && Objects.equals(overview, movie.overview) && Objects.equals(tagline, movie.tagline) && Objects.equals(collection, movie.collection) && Objects.equals(genres, movie.genres) && Objects.equals(releaseDate, movie.releaseDate) && Objects.equals(keywords, movie.keywords) && Objects.equals(producers, movie.producers) && Objects.equals(crew, movie.crew) && Objects.equals(cast, movie.cast) && Objects.equals(resources, movie.resources) && Objects.equals(budget, movie.budget) && status == movie.status && Objects.equals(runtime, movie.runtime) && Objects.equals(revenue, movie.revenue);
+        return Objects.equals(id, movie.id) && Objects.equals(title, movie.title) && Objects.equals(overview, movie.overview) && Objects.equals(tagline, movie.tagline) && Objects.equals(collection, movie.collection) && Objects.equals(genres, movie.genres) && Objects.equals(releaseDateCustom, movie.releaseDateCustom) && Objects.equals(keywords, movie.keywords) && Objects.equals(producers, movie.producers) && Objects.equals(crew, movie.crew) && Objects.equals(cast, movie.cast) && Objects.equals(resources, movie.resources) && Objects.equals(budget, movie.budget) && status == movie.status && Objects.equals(runtime, movie.runtime) && Objects.equals(revenue, movie.revenue);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, title, overview, tagline, collection, genres, releaseDate, keywords, producers, crew, cast, resources, budget, status, runtime, revenue);
+        return Objects.hash(id, title, overview, tagline, collection, genres, releaseDateCustom, keywords, producers, crew, cast, resources, budget, status, runtime, revenue);
     }
 
     @Override
@@ -219,7 +219,7 @@ public class Movie {
                 .add("tagline='" + tagline + "'")
                 .add("collection=" + collection)
                 .add("genres=" + genres)
-                .add("releaseDate=" + releaseDate)
+                .add("releaseDate=" + releaseDateCustom)
                 .add("keywords=" + keywords)
                 .add("producers=" + producers)
                 .add("crew=" + crew)

@@ -2,6 +2,8 @@ package com.example.proyectoparte1.controller;
 
 import com.example.proyectoparte1.model.Movie;
 import com.example.proyectoparte1.service.MovieService;
+import com.example.proyectoparte1.service.PatchUtils;
+import com.github.fge.jsonpatch.JsonPatchException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -9,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -16,10 +20,12 @@ import java.util.Optional;
 public class MovieController {
 
     private final MovieService movieService;
+    private final PatchUtils patchUtils;
 
     @Autowired
-    public MovieController(MovieService movieService) {
+    public MovieController(MovieService movieService, PatchUtils patchUtils) {
         this.movieService = movieService;
+        this.patchUtils = patchUtils;
     }
 
     // Obtener todas las películas mediante los filtros del usuario
@@ -34,7 +40,7 @@ public class MovieController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "releaseDate") String sortBy,
             @RequestParam(defaultValue = "ASC") String direction) {
-        Page<Movie> peliculas = movieService.obtenerTodasMovies(keyword, genre, releaseDate, crew, cast,  page, size, sortBy, direction);
+        Page<Movie> peliculas = movieService.obtenerTodasMovies(keyword, genre, releaseDate, crew, cast, page, size, sortBy, direction);
         return ResponseEntity.ok(peliculas);
     }
 
@@ -61,20 +67,38 @@ public class MovieController {
     @PutMapping
     public ResponseEntity<Movie> modificarPelicula(@RequestBody Movie movieOld, @RequestBody Movie movieNew) {
         Movie peliculaModificada = movieService.modificarPelicula(movieOld.getId(), movieNew);
-        if(peliculaModificada == null) {
+        if (peliculaModificada == null) {
             return ResponseEntity.badRequest().body(null);
         }
         return ResponseEntity.ok(peliculaModificada);
     }
 
+    // Modificar parcialmente una película utilizando PATCH y JsonPatch
+    @PatchMapping(path = "/{movieId}")
+    public ResponseEntity<Movie> modificarPeliculaParcialmente(@PathVariable String movieId, @RequestBody List<Map<String, Object>> updates) {
+        try {
+            Optional<Movie> peliculaOptional = movieService.obtenerMovie(movieId);
+            if (peliculaOptional.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            Movie pelicula = peliculaOptional.get();
+            Movie peliculaModificada = patchUtils.patch(pelicula, updates);
+            movieService.modificarPelicula(movieId, peliculaModificada);
+            return ResponseEntity.ok(peliculaModificada);
+        } catch (JsonPatchException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
     @DeleteMapping("/{movieId}")
-    public ResponseEntity<Movie> eliminarPelicula(@PathVariable String movieId){
-        Movie target = movieService.obtenerMovie(movieId).get();
-        if (target == null) {
+    public ResponseEntity<Movie> eliminarPelicula(@PathVariable String movieId) {
+        Optional<Movie> target = movieService.obtenerMovie(movieId);
+        if (target.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         movieService.eliminarPelicula(movieId);
-        return ResponseEntity.ok(target);
+        return ResponseEntity.ok(target.get());
     }
-
 }

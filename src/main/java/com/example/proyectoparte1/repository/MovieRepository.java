@@ -1,6 +1,6 @@
 package com.example.proyectoparte1.repository;
 
-import com.example.proyectoparte1.model.Date;
+import com.example.proyectoparte1.model.DateCustom;
 import com.example.proyectoparte1.model.Movie;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,7 +20,7 @@ public interface MovieRepository extends MongoRepository<Movie, String> {
     Page<Movie> findByGenresContaining(String genre, Pageable pageable);
 
     //Buscar mediante fecha de lanzamiento
-    Page<Movie> findByReleaseDate(Date releaseDate, Pageable pageable);
+    Page<Movie> findByReleaseDate(DateCustom releaseDateCustom, Pageable pageable);
 
     //Buscar mediante cargos de direccion, escritores ..-
     Page<Movie> findByCrewNameContaining(String crew, Pageable pageable);

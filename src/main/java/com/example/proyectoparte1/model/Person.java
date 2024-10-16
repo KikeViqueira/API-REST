@@ -17,14 +17,14 @@ public class Person {
     private String country;
     private String picture;
     private String biography;
-    private Date birthday;
-    private Date deathday;
+    private DateCustom birthday;
+    private DateCustom deathday;
 
     public Person() {
     }
 
 
-    public Person(String id, String name, String country, String picture, String biography, Date birthday, Date deathday) {
+    public Person(String id, String name, String country, String picture, String biography, DateCustom birthday, DateCustom deathday) {
         this.id = id;
         this.name = name;
         this.country = country;
@@ -79,20 +79,20 @@ public class Person {
         return this;
     }
 
-    public Date getBirthday() {
+    public DateCustom getBirthday() {
         return birthday;
     }
 
-    public Person setBirthday(Date birthday) {
+    public Person setBirthday(DateCustom birthday) {
         this.birthday = birthday;
         return this;
     }
 
-    public Date getDeathday() {
+    public DateCustom getDeathday() {
         return deathday;
     }
 
-    public Person setDeathday(Date deathday) {
+    public Person setDeathday(DateCustom deathday) {
         this.deathday = deathday;
         return this;
     }
