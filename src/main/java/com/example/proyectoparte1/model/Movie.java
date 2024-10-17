@@ -1,6 +1,8 @@
 package com.example.proyectoparte1.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -13,6 +15,8 @@ import java.util.StringJoiner;
 public class Movie {
     @Id
     private String id;
+    @NotBlank(message = "El título de la película no puede ser vacío")
+    @Size(min=1, message="El titulo tiene que tener minimo un caracter")
     private String title;
     private String overview;
     private String tagline;

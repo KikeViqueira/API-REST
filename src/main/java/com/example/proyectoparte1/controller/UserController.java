@@ -107,10 +107,6 @@ public class UserController {
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error al aplicar el parche: " + e.getMessage());
             return ResponseEntity.badRequest().body(errorResponse);
-        } catch (Exception e) {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Error interno del servidor: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 

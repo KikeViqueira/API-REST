@@ -2,6 +2,7 @@ package com.example.proyectoparte1.service;
 
 import com.example.proyectoparte1.model.DateCustom;
 import com.example.proyectoparte1.model.Movie;
+import com.example.proyectoparte1.model.MovieSummary;
 import com.example.proyectoparte1.repository.MovieRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -24,6 +25,14 @@ public class MovieService {
 
     public Optional<Movie> obtenerMovie(String id){
         return movieRepository.findById(id);
+    }
+
+    public Page<Movie> obtenerMoviesPorTitulo(String title){
+        int size = 10, page = 0;
+        String sortBy = "title", direction = "DESC";
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
+
+        return movieRepository.findByTitle(title, pageRequest);
     }
 
     // Función para obtener todas las películas en base a palabras clave, género o mediante la fecha de lanzamiento
@@ -66,80 +75,9 @@ public class MovieService {
         return movieRepository.save(movie);
     }
 
-    //Funcion para modificar los datos de una pelicula en concreto
-    public Movie modificarPelicula(String id, Movie movieNew) {
-        Optional<Movie> optionalMovie = movieRepository.findById(id);
-        if (optionalMovie.isPresent()) {
-            Movie movieOld = optionalMovie.get();
-            Movie updatedMovie = modificarPelicula(movieOld, movieNew);
-            return movieRepository.save(updatedMovie); // Guarda la película actualizada
-        } else {
-            // Si la película no existe, puedes lanzar una excepción o retornar null
-            return null;
-        }
-    }
-
-    //Funcion aux para comparar y igualar los datos actualizados a la pelicula que buscamos
-    private Movie modificarPelicula(Movie movieOld, Movie movieNew) {
-        // Solo actualiza si el campo en la nueva película no es null
-        if (movieNew.getTitle() != null) {
-            movieOld.setTitle(movieNew.getTitle());
-        }
-
-        if (movieNew.getReleaseDate() != null) {
-            movieOld.setReleaseDate(movieNew.getReleaseDate());
-        }
-
-        if (movieNew.getOverview() != null) {
-            movieOld.setOverview(movieNew.getOverview());
-        }
-
-        if (movieNew.getTagline() != null) {
-            movieOld.setTagline(movieNew.getTagline());
-        }
-
-        if (movieNew.getGenres() != null) {
-            movieOld.setGenres(movieNew.getGenres());
-        }
-
-        if (movieNew.getKeywords() != null) {
-            movieOld.setKeywords(movieNew.getKeywords());
-        }
-
-        if (movieNew.getProducers() != null) {
-            movieOld.setProducers(movieNew.getProducers());
-        }
-
-        if (movieNew.getCrew() != null) {
-            movieOld.setCrew(movieNew.getCrew());
-        }
-
-        if (movieNew.getCast() != null) {
-            movieOld.setCast(movieNew.getCast());
-        }
-
-        if (movieNew.getResources() != null) {
-            movieOld.setResources(movieNew.getResources());
-        }
-
-        if (movieNew.getBudget() != null) {
-            movieOld.setBudget(movieNew.getBudget());
-        }
-
-        if (movieNew.getStatus() != null) {
-            movieOld.setStatus(movieNew.getStatus());
-        }
-
-        if (movieNew.getRuntime() != null) {
-            movieOld.setRuntime(movieNew.getRuntime());
-        }
-
-        if (movieNew.getRevenue() != null) {
-            movieOld.setRevenue(movieNew.getRevenue());
-        }
-
-        // Devolver la película modificada
-        return movieOld;
+    //Funcion para guardar los datos de los atributos de una película
+    public Movie modificarPelicula(Movie movieNew) {
+        return movieRepository.save(movieNew); // Guarda la película actualizada
     }
 
     //Funcion para eliminar una pelicula determinada
