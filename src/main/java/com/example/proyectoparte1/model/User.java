@@ -14,9 +14,6 @@ import java.util.StringJoiner;
 @Document(collection = "users")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class User {
-    @Id
-    private String id;
-
     @NotBlank(message = "El email no puede estar vacio")
     @Email
     private String email;
@@ -65,10 +62,6 @@ public class User {
 
     public List<User> getFriends() {
         return friends;
-    }
-
-    public String getId() {
-        return id;
     }
 
     public User setEmail(String email) {

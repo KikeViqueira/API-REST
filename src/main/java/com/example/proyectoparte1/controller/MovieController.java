@@ -1,5 +1,7 @@
 package com.example.proyectoparte1.controller;
 
+import com.example.proyectoparte1.model.Cast;
+import com.example.proyectoparte1.model.Crew;
 import com.example.proyectoparte1.model.Movie;
 import com.example.proyectoparte1.model.User;
 import com.example.proyectoparte1.service.MovieService;
@@ -37,12 +39,12 @@ public class MovieController {
     public ResponseEntity<Page<Movie>> obtenerTodasPeliculas(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String genres,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate releaseDate, // Usar LocalDate con @DateTimeFormat
+            @RequestParam(required = false) LocalDate releaseDate,
             @RequestParam(required = false) String crew,
             @RequestParam(required = false) String cast,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "releaseDate") String sortBy,
+            @RequestParam(defaultValue = "title") String sortBy,
             @RequestParam(defaultValue = "ASC") String direction) {
         Page<Movie> peliculas = movieService.obtenerTodasMovies(keyword, genres, releaseDate, crew, cast, page, size, sortBy, direction);
         if(peliculas == null) {
@@ -64,6 +66,8 @@ public class MovieController {
     public ResponseEntity<Movie> crearPelicula(@RequestBody @Valid Movie movie) {
         //Tenemos que saber si existen películas con el título que el usuario le ha dado a su película
         Page<Movie> moviesExistentes = movieService.obtenerMoviesPorTitulo(movie.getTitle());
+
+
 
         //En caso de que exita ya una película con ese nombre indicamos un estado de conflicto
         if(moviesExistentes != null && moviesExistentes.getTotalElements() > 0) {

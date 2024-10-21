@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 public interface AssessmentRepository extends MongoRepository<Assessment, String> {
 
     Page<Assessment> findByMovieIdContaining(String movieId, Pageable pageable);
-    Page<Assessment> findByUserIdContaining(String userId, Pageable pageable);
-
+    Page<Assessment> findByUserEmailContaining(String email, Pageable pageable);
 
 }

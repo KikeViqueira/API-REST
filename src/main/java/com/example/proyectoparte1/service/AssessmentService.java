@@ -7,7 +7,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -20,22 +19,27 @@ public class AssessmentService {
         this.assessmentRepository = assessmentRepository;
     }
 
-    public Assessment obtenerComentario(String commentId) {
-        return assessmentRepository.findById(commentId).orElse(null);
-    }
-
-
-    //Obtener los comentarios de una pelicula
-    public Page<Assessment> obtenerComentariosPelicula(String movieId,  int page, int size, String sortBy, String direction) {
+    public Page<Assessment> obtenerComentarioFiltrado(String movieId, String email, int page, int size, String sortBy, String direction) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
-        return assessmentRepository.findByMovieIdContaining(movieId, pageRequest);
+
+        if(movieId != null && !movieId.isEmpty()) {
+            //Si hemos recibido el id de una película buscamos todos los comentarios relacionados con la película
+            return assessmentRepository.findByMovieIdContaining(movieId, pageRequest);
+        }
+
+        if(email != null && !email.isEmpty()) {
+            //Lo mismo pero en el caso de un user específico
+            return assessmentRepository.findByUserEmailContaining(email, pageRequest);
+        }
+        //En el caso de que el usuario no haya especificado filtros tenemos que devolver todos los comments
+        return assessmentRepository.findAll(pageRequest);
     }
 
-    //Obtener comentarios de un usuario
-    public Page<Assessment> obtenerComentariosUsuario(String userId, int page, int size, String sortBy, String direction) {
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
-        return assessmentRepository.findByUserIdContaining(userId, pageRequest);
+    public Assessment obtenerComentario(String commentId){
+        Optional<Assessment> optionalAssessment = assessmentRepository.findById(commentId);
+        return optionalAssessment.orElse(null);
     }
+
 
     //Anhadir un nuevo comentario a una pelicula
     public Assessment crearComentario(Assessment assessment) {

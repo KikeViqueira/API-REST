@@ -1,22 +1,29 @@
 package com.example.proyectoparte1.service;
 
-import com.example.proyectoparte1.model.DateCustom;
-import com.example.proyectoparte1.model.Movie;
-import com.example.proyectoparte1.model.MovieSummary;
+import com.example.proyectoparte1.model.*;
 import com.example.proyectoparte1.repository.MovieRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import org.springframework.beans.propertyeditors.CustomDateEditor;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class MovieService {
 
     private final MovieRepository movieRepository;
+
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     @Autowired
     public MovieService(MovieRepository movieRepository){
@@ -35,38 +42,63 @@ public class MovieService {
         return movieRepository.findByTitle(title, pageRequest);
     }
 
-    // Función para obtener todas las películas en base a palabras clave, género o mediante la fecha de lanzamiento
     public Page<Movie> obtenerTodasMovies(String keyword, String genre, LocalDate releaseDate, String crew, String cast, int page, int size, String sortBy, String direction) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
+        Query query = new Query();
 
-        // Filtro por palabras clave
-        if (keyword != null && !keyword.isEmpty()) {
-            return movieRepository.findByTitleContainingOrOverviewContaining(keyword, keyword, pageRequest);
+        //Hacemos los distintos criterios para nuestra consulta
+
+        //Tenemos que mirar si el user ha buscado por el filtro de keywords
+        if (keyword != null) {
+            /*Dentro de la lista de keywords usamos la expresión regular para encontrar las películas que la contengan en la lista de keywords
+            * La opción i significa que no distingue entre minúsculas y mayúsculas*/
+
+            query.addCriteria(Criteria.where("keywords").regex(keyword, "i"));
         }
 
-        // Filtro por género
-        if (genre != null && !genre.isEmpty()) {
-            return movieRepository.findByGenresContaining(genre, pageRequest);
+        if(genre != null) {
+            query.addCriteria(Criteria.where("genres").regex(genre, "i"));
         }
 
-        // Filtro por fecha de lanzamiento (conversión de LocalDate a Date personalizada)
-        if (releaseDate != null) {
-            // Convertimos LocalDate a tu clase personalizada Date
-            DateCustom customDateCustom = new DateCustom(releaseDate.getDayOfMonth(), releaseDate.getMonthValue(), releaseDate.getYear());
-            return movieRepository.findByReleaseDate(customDateCustom, pageRequest);
+        if(releaseDate != null) {
+            DateCustom customDate = new DateCustom();
+            customDate.setYear(releaseDate.getYear());
+            customDate.setMonth(releaseDate.getMonthValue());
+            customDate.setDay(releaseDate.getDayOfMonth());
+            query.addCriteria(Criteria.where("releaseDate").is(customDate));
         }
 
-        if(crew != null && !crew.isEmpty()) {
-            return movieRepository.findByCrewNameContaining(crew, pageRequest);
+        if(crew != null) {
+            query.addCriteria(Criteria.where("crew.name").regex(crew, "i"));
         }
 
-        if(cast != null && !cast.isEmpty()) {
-            return movieRepository.findByCastNameContaining(cast, pageRequest);
+        if(cast != null) {
+            query.addCriteria(Criteria.where("cast.name").regex(cast, "i"));
         }
 
-        // Si no se han aplicado filtros, devolver todas las películas
-        return movieRepository.findAll(pageRequest);
+        //Recuperamos las movies con la consulta personalizada
+        List<Movie> movies = mongoTemplate.find(query, Movie.class);
+        long count = mongoTemplate.count(query, Movie.class);
 
+        //tenemos que pasar las movies al objeto movie específico para ensear los atributos que se piden en la salida
+        List<Movie> moviesFiltradas = movies.stream().map(this::movieConParametrosEspecificos).toList();
+
+        //Clase que en base a la info que tenemos crea automaticamente las pages en base a sus cálculos
+        return new PageImpl<>(moviesFiltradas, pageRequest, count);
+
+    }
+
+
+
+    public Movie movieConParametrosEspecificos(Movie movie){
+        Movie movieConParametrosEspecificos = new Movie();
+        movieConParametrosEspecificos.setId(movie.getId());
+        movieConParametrosEspecificos.setTitle(movie.getTitle());
+        movieConParametrosEspecificos.setOverview(movie.getOverview());
+        movieConParametrosEspecificos.setGenres(movie.getGenres());
+        movieConParametrosEspecificos.setReleaseDate(movie.getReleaseDate());
+        movieConParametrosEspecificos.setResources(movie.getResources());
+        return movieConParametrosEspecificos;
     }
 
     //Funcion para crear una nueva película, el único campo obligatorio es el título

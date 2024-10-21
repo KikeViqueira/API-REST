@@ -10,7 +10,6 @@ import java.util.StringJoiner;
 @Document(collection = "comments")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Assessment {
-    @Id
     private String id;
     private Integer rating;
     //Guardar el nombre y email del user solo

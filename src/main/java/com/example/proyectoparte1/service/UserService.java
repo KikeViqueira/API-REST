@@ -21,8 +21,8 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public User obtenerUsuario(String id) {
-        return userRepository.findById(id).orElse(null);
+    public User obtenerUsuario(String email) {
+        return userRepository.findById(email).orElse(null);
     }
 
     public List<User> obtenerTodosUsuarios() {
@@ -33,17 +33,17 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public void eliminarUsuario(String id) {
-        userRepository.deleteById(id);
+    public void eliminarUsuario(String email) {
+        userRepository.deleteById(email);
     }
 
     public User actualizarUsuario(User usuarioActualizado) {
-        return userRepository.findById(usuarioActualizado.getId()).map(user -> userRepository.save(usuarioActualizado)).orElse(null);
+        return userRepository.findById(usuarioActualizado.getEmail()).map(user -> userRepository.save(usuarioActualizado)).orElse(null);
     }
 
-    public User eliminarAmigo(String id, String friendId) {
-        return userRepository.findById(id).map(user -> {
-            Optional<User> amigoOptional = userRepository.findById(friendId);
+    public User eliminarAmigo(String email, String friendEmail) {
+        return userRepository.findById(email).map(user -> {
+            Optional<User> amigoOptional = userRepository.findById(friendEmail);
 
             // Comprobar si el amigo existe
             if (amigoOptional.isEmpty()) {

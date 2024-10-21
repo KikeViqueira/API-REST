@@ -33,9 +33,9 @@ public class UserController {
     }
 
     // Obtener un usuario mediante su ID
-    @GetMapping("/{id}")
-    public ResponseEntity<User> obtenerUsuario(@PathVariable String id) {
-        User usuario = userService.obtenerUsuario(id);
+    @GetMapping("/{email}")
+    public ResponseEntity<User> obtenerUsuario(@PathVariable String email) {
+        User usuario = userService.obtenerUsuario(email);
         if (usuario == null) {
             return ResponseEntity.notFound().build();
         }
@@ -63,18 +63,18 @@ public class UserController {
     }
 
     // Eliminar un usuario por ID
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarUsuario(@PathVariable String id) {
-        User usuario = userService.obtenerUsuario(id);
+    @DeleteMapping("/{email}")
+    public ResponseEntity<Void> eliminarUsuario(@PathVariable String email) {
+        User usuario = userService.obtenerUsuario(email);
         if (usuario == null) {
             return ResponseEntity.notFound().build();
         }
-        userService.eliminarUsuario(id);
+        userService.eliminarUsuario(email);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping(path = "/{userId}")
-    public ResponseEntity<?> modificarUsuario(@PathVariable String userId, @RequestBody List<Map<String, Object>> updates) {
+    @PatchMapping(path = "/{email}")
+    public ResponseEntity<?> modificarUsuario(@PathVariable String email, @RequestBody List<Map<String, Object>> updates) {
         try {
             //Recorremos la lista de atributos a actualizar buscando que no esté el email o el aniversario
             for (Map<String, Object> update : updates) {
@@ -92,7 +92,7 @@ public class UserController {
                 }
             }
 
-            User usuario = userService.obtenerUsuario(userId);
+            User usuario = userService.obtenerUsuario(email);
             //Si no se encuentra al usuario se devuelve un código 404 notFound
             if (usuario == null) {
                 return ResponseEntity.notFound().build();
@@ -111,27 +111,27 @@ public class UserController {
     }
 
     // Eliminar un amigo del usuario
-    @DeleteMapping("/{userId}/friends/{friendId}")
-    public ResponseEntity<User> eliminarAmigo(@PathVariable String userId, @PathVariable String friendId) {
-        User usuario = userService.obtenerUsuario(userId);
+    @DeleteMapping("/{email}/friends/{friendEmail}")
+    public ResponseEntity<User> eliminarAmigo(@PathVariable String email, @PathVariable String friendEmail) {
+        User usuario = userService.obtenerUsuario(email);
         if (usuario == null) {
             return ResponseEntity.notFound().build();
         }
-        User eliminado = userService.eliminarAmigo(userId, friendId);
+        User eliminado = userService.eliminarAmigo(email, friendEmail);
         if (eliminado == null) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(eliminado);
     }
 
-    @PostMapping("/{userId}/friends")
-    public ResponseEntity<?> anhadirAmigo(@PathVariable String userId, @RequestBody @Valid User friend ) {
+    @PostMapping("/{email}/friends")
+    public ResponseEntity<?> anhadirAmigo(@PathVariable String email, @RequestBody @Valid User friend ) {
         //Comprobamos que los dos ususarios existen
-        User usuario = userService.obtenerUsuario(userId);
+        User usuario = userService.obtenerUsuario(email);
         if (usuario == null) {
             return ResponseEntity.notFound().build();
         }
-        User amigo = userService.obtenerUsuario(friend.getId());
+        User amigo = userService.obtenerUsuario(friend.getEmail());
         //Comprobamos que el amigo no sea null y si existe que todos los atributos tengan el mismo valor
         if(amigo == null || !amigo.getName().equals(friend.getName()) || !amigo.getEmail().equals(friend.getEmail())) {
             return ResponseEntity.notFound().build();
