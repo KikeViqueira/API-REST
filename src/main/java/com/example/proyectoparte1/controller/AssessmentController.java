@@ -28,7 +28,7 @@ public class AssessmentController {
 
     // Obtener comentarios de una película o de un usuario
     @GetMapping
-    public ResponseEntity<Page<Assessment>> obtenerComentariosPelicula(
+    public ResponseEntity<Page<Assessment>> obtenerComentariosPeliculaUsuario(
             @RequestParam(required = false) String movieId,
             @RequestParam(required = false) String email,
             @RequestParam(defaultValue = "0") int page,
