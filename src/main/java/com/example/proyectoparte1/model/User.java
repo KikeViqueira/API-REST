@@ -14,6 +14,7 @@ import java.util.StringJoiner;
 @Document(collection = "users")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class User {
+    @Id  //KWORD Indicamos que el campo email en nuestro caso funciona como identificador único, tenemos que marcarlo con esta flag para que el findById funcione correctamente
     @NotBlank(message = "El email no puede estar vacio")
     @Email
     private String email;

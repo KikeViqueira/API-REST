@@ -38,23 +38,27 @@ public class UserService {
     }
 
     public User actualizarUsuario(User usuarioActualizado) {
-        return userRepository.findById(usuarioActualizado.getEmail()).map(user -> userRepository.save(usuarioActualizado)).orElse(null);
+        /*volver a llamar a findById es innecesario si ya se ha verificado previamente que el usuario existe y no se ha modificado el email (que actúa como ID en la base de datos).
+         Si la existencia del usuario ya se confirmó y los campos restringidos (email y birthday) no han cambiado, puedes simplemente llamar a save directamente con usuarioActualizado.*/
+
+        //return userRepository.findById(usuarioActualizado.getEmail()).map(user -> userRepository.save(usuarioActualizado)).orElse(null);
+        return userRepository.save(usuarioActualizado);
     }
 
-    public User eliminarAmigo(String email, String friendEmail) {
-        return userRepository.findById(email).map(user -> {
-            Optional<User> amigoOptional = userRepository.findById(friendEmail);
+    public User eliminarAmigo(User mainUser, User amigoEliminar) {
+        //Obtenemos la lista de amigos del usuario
+        List<User> friendList = mainUser.getFriends();
 
-            // Comprobar si el amigo existe
-            if (amigoOptional.isEmpty()) {
-                return null;  // No se encuentra el amigo con el friendId
-            }
-            User amigo = amigoOptional.get();
-            // Remover al amigo de la lista de amigos
-            user.getFriends().remove(amigo);
-            // Guardar el usuario actualizado
-            return userRepository.save(user);
-        }).orElse(null);
+        //Verificamos si el amigo a eliminar está en la lista de amigos
+        if (friendList != null && friendList.contains(amigoEliminar)) {
+            friendList.remove(amigoEliminar);
+            mainUser.setFriends(friendList);
+            return userRepository.save(mainUser);
+        }
+
+        //Si el usuario a eliminar no estaba en la lista devolvemos null
+        return null;
+
     }
 
     public User anhadirAmigo(User mainUser, User friend){

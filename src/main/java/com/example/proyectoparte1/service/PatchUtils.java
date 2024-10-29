@@ -21,9 +21,10 @@ public class PatchUtils {
 
     @SuppressWarnings("unchecked")
     public <T> T patch(T data, List<Map<String, Object>> updates) throws JsonPatchException {
-        // Translate the set of operations to a JsonPatch instance
+        //mapper.convertValue convierte la lista de mapas (updates) a un objeto JsonPatch, que representa un conjunto de operaciones JSON Patch.
         JsonPatch operations = mapper.convertValue(updates, JsonPatch.class);
-        // Translate domain object to plain JSON node
+        /*El objeto (data) se convierte en un JsonNode (una representación genérica de JSON). Esto facilita aplicar las operaciones
+         de parche directamente sobre un objeto JSON sin modificar el objeto original.*/
         JsonNode json = mapper.convertValue(data, JsonNode.class);
         // Apply operations to the JSON node
         JsonNode updatedJson = operations.apply(json);
