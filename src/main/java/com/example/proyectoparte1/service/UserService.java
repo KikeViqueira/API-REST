@@ -3,8 +3,9 @@ package com.example.proyectoparte1.service;
 import com.example.proyectoparte1.model.User;
 import com.example.proyectoparte1.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Example;
-import org.springframework.data.domain.ExampleMatcher;
+import org.springframework.data.domain.*;
+
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -33,8 +34,20 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public void eliminarUsuario(String email) {
-        userRepository.deleteById(email);
+    public void eliminarUsuario(User user) {
+        String sortBy = "id", direction = "DESC";
+        //Una vez eliminamos al usuario tenemos que mirar todos los usqarios de nuestra BD para ver si el usario eliminado era amigo de alguien
+        PageRequest pageRequest = PageRequest.of(0, 10, Sort.Direction.fromString(direction), sortBy);
+        Page<User> usuariosAmigos = userRepository.findByFriendsEmailContaining(user.getEmail(), pageRequest);
+
+        if(usuariosAmigos!=null && !usuariosAmigos.isEmpty()){
+            //Recorremos la page eliminando en cada uno de los amigos de los usuarios al user eliminado
+            usuariosAmigos.forEach(userAmigo -> {
+                eliminarAmigo(userAmigo, user);
+            });
+        }
+        //Por ultimo eliminamos al usuario de todo
+        userRepository.deleteById(user.getEmail());
     }
 
     public User actualizarUsuario(User usuarioActualizado) {
@@ -68,6 +81,9 @@ public class UserService {
         // Si la lista de amigos es null, creamos una nueva lista
         if (friendsList == null) {
             friendsList = new ArrayList<>();
+            friendsList.add(friend);
+            mainUser.setFriends(friendsList);
+            return userRepository.save(mainUser);
         }
         else{
             //En el caso de que ya exista la lista de amigos , miramos si el usuario que queremos anhadir a amigo no lo es ya

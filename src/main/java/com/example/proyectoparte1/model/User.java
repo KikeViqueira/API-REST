@@ -14,7 +14,7 @@ import java.util.StringJoiner;
 @Document(collection = "users")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class User {
-    @Id  //KWORD Indicamos que el campo email en nuestro caso funciona como identificador único, tenemos que marcarlo con esta flag para que el findById funcione correctamente
+    @Id  //Indicamos que el campo email en nuestro caso funciona como identificador único, tenemos que marcarlo con esta flag para que el findById funcione correctamente
     @NotBlank(message = "El email no puede estar vacio")
     @Email
     private String email;
@@ -27,18 +27,22 @@ public class User {
     private DateCustom birthday;
     //Basta con guardar los atributos name y email, no toda la info del user
     private List<User> friends;
+    private String password;
+    private List<String> roles;
 
     public User() {
     }
 
 
-    public User(String email, String name, String country, String picture, DateCustom birthday, List<User> friends) {
+    public User(String email, String name, String country, String picture, DateCustom birthday, List<User> friends, String password, List<String> roles) {
         this.email = email;
         this.name = name;
         this.country = country;
         this.picture = picture;
         this.birthday = birthday;
         this.friends = friends;
+        this.password = password;
+        this.roles = roles;
     }
 
     public String getEmail() {
@@ -65,6 +69,12 @@ public class User {
         return friends;
     }
 
+    public String getPassword() {
+        return password;
+    }
+    public List<String> getRoles() {
+        return roles;
+    }
     public User setEmail(String email) {
         this.email = email;
         return this;
@@ -92,6 +102,15 @@ public class User {
 
     public User setFriends(List<User> friends) {
         this.friends = friends;
+        return this;
+    }
+
+    public User setPassword(String password) {
+        this.password = password;
+        return this;
+    }
+    public User setRoles(List<String> roles) {
+        this.roles = roles;
         return this;
     }
 

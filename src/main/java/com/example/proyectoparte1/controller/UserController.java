@@ -7,6 +7,8 @@ import com.github.fge.jsonpatch.JsonPatchException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,13 +27,17 @@ public class UserController {
 
     private final UserService userService;
     private final PatchUtils patchUtils;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public UserController(UserService userService, PatchUtils patchUtils) {
+    public UserController(UserService userService, PatchUtils patchUtils, PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.patchUtils = patchUtils;
+        this.passwordEncoder = passwordEncoder;
     }
 
+    //Solo pueden llamar al endpoint el admin, el propio usuario y sus amigos
+    @PreAuthorize("hasRole('ADMIN') or #email == authentication.principal.username")
     // Obtener un usuario mediante su ID
     @GetMapping("/{email}")
     public ResponseEntity<User> obtenerUsuario(@PathVariable String email) {
@@ -47,7 +53,7 @@ public class UserController {
     @GetMapping
     public ResponseEntity<List<User>> obtenerUsuarios() {
         List<User> usuariosObtenidos = userService.obtenerTodosUsuarios();
-        //KWORD En el caso de que no se devuelvan usuarios al usuario que los solicita le mandamos un mensaje de que no hay el contenido solicitado
+        //En el caso de que no se devuelvan usuarios al usuario que los solicita le mandamos un mensaje de que no hay el contenido solicitado
         if (usuariosObtenidos == null || usuariosObtenidos.isEmpty()) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(usuariosObtenidos);
     }
@@ -56,15 +62,20 @@ public class UserController {
     @PostMapping
     /*Si el User no cumple con las validaciones, Spring automáticamente devuelve una respuesta de error con un código de estado 400 (Bad Request)
      sin necesidad de escribir código adicional.*/
-    public ResponseEntity<User> crearUsuario(@RequestBody @Valid User user) {
-        User usuario = userService.crearUsuario(user);
-        if (usuario == null) {
-            return ResponseEntity.badRequest().build();
+    public ResponseEntity<?> crearUsuario(@RequestBody @Valid User user) {
+
+        // Verificar si el usuario ya existe
+        if (userService.obtenerUsuario(user.getEmail()) != null) {
+            return ResponseEntity.status(409).body("El usuario ya existe.");
         }
-        //Creamos la URI del recurso creado
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("").buildAndExpand(usuario).toUri();
-        //Devolvemos el código 201 para indicar que el recurso se ha creado con éxito
-        return ResponseEntity.created(location).body(usuario);
+
+        // Encriptar la contraseña antes de guardar
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        // Guardar el nuevo usuario en la base de datos
+        userService.crearUsuario(user);
+
+        return ResponseEntity.status(201).body("Usuario registrado exitosamente.");
     }
 
     // Eliminar un usuario por ID
@@ -74,13 +85,13 @@ public class UserController {
         if (usuario == null) {
             return ResponseEntity.notFound().build();
         }
-        userService.eliminarUsuario(email);
+        userService.eliminarUsuario(usuario);
         //Devolvemos al user un código de éxito y en este caso es un noContent ya que no hace falta devolverle info y se ahorra ancho de banda, lo cual nos hace un sistema más eficiente
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping(path = "/{email}")
-    public ResponseEntity<?> modificarUsuario(@PathVariable String email, @RequestBody List<Map<String, Object>> updates) {
+    public ResponseEntity<?> modificarUsuario(@PathVariable("email") String email, @RequestBody List<Map<String, Object>> updates) {
         /*Updates es una lista que contiene pares de clave valor, donde:
         * String hace referencia al atributo que se le va a aplicar las actualizaciones
         * El objecto en este caso es el nuevo valor que se meterá en dicho atributo del user*/
@@ -123,7 +134,7 @@ public class UserController {
 
     // Eliminar un amigo del usuario
     @DeleteMapping("/{email}/friends/{friendEmail}")
-    public ResponseEntity<?> eliminarAmigo(@PathVariable String email, @PathVariable String friendEmail) {
+    public ResponseEntity<?> eliminarAmigo(@PathVariable("email") String email, @PathVariable("friendEmail") String friendEmail) {
         User usuario = userService.obtenerUsuario(email);
         if (usuario == null) {
             return ResponseEntity.notFound().build();
@@ -145,7 +156,10 @@ public class UserController {
 
     @PostMapping("/{email}/friends")
     public ResponseEntity<?> anhadirAmigo(@PathVariable String email, @RequestBody @Valid User friend ) {
-        //Comprobamos que el user que esta intentando anhadir a amigo a otro user existe y que no se esté intentando anhadir asi mismo como amigo
+        //Comprobamos que el user que esta intentando anhadir a amigo a otro user que existe y que no se esté intentando anhadir a el mismo como amigo
+        
+        System.out.println("Hola");
+        
         User usuario = userService.obtenerUsuario(email);
         if (usuario == null) {
             return ResponseEntity.notFound().build();
@@ -155,6 +169,7 @@ public class UserController {
 
         //Comprobamos ahora si que el amigo exista
         User amigo = userService.obtenerUsuario(friend.getEmail());
+
 
         //Comprobamos que el amigo no sea null y si existe que todos los atributos tengan el mismo valor
         if(amigo == null || !amigo.getEmail().equals(friend.getEmail()) || !amigo.getName().equals(friend.getName())) {

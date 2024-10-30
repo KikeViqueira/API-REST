@@ -1,6 +1,7 @@
 package com.example.proyectoparte1.service;
 
 import com.example.proyectoparte1.model.*;
+import com.example.proyectoparte1.repository.AssessmentRepository;
 import com.example.proyectoparte1.repository.MovieRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.propertyeditors.CustomDateEditor;
@@ -21,13 +22,15 @@ import java.util.stream.Collectors;
 public class MovieService {
 
     private final MovieRepository movieRepository;
+    private final AssessmentRepository assessmentRepository;
 
     @Autowired
     private MongoTemplate mongoTemplate;
 
     @Autowired
-    public MovieService(MovieRepository movieRepository){
+    public MovieService(MovieRepository movieRepository, AssessmentRepository assessmentRepository) {
         this.movieRepository = movieRepository;
+        this.assessmentRepository = assessmentRepository;
     }
 
     public Optional<Movie> obtenerMovie(String id){
@@ -114,6 +117,19 @@ public class MovieService {
 
     //Funcion para eliminar una pelicula determinada
     public void eliminarPelicula(String id) {
+
+        //Una vez eliminamos al usuario tenemos que mirar todos los usqarios de nuestra BD para ver si el usario eliminado era amigo de alguien
+        PageRequest pageRequest = PageRequest.of(0, 10, Sort.Direction.fromString("DESC"), "rating");
+
+        //Al eliminar una película tenemos que eliminar todos los comentarios relacionados con ella
+        Page<Assessment> comentariosPelicula = assessmentRepository.findByMovieIdContaining(id, pageRequest);
+
+        if(comentariosPelicula != null && !comentariosPelicula.isEmpty()){
+            comentariosPelicula.forEach(assessment -> {
+                assessmentRepository.deleteById(assessment.getId());
+            });
+        }
+
         movieRepository.deleteById(id);
     }
 }
