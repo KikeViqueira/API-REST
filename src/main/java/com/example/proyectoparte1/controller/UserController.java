@@ -59,13 +59,11 @@ public class UserController {
             return ResponseEntity.notFound().build();
         }
 
-        PageRequest pageable = PageRequest.of(0, 10, Sort.Direction.fromString("DESC"), "email");
-
+        //Tenemos que devolver link a si mismo y a la lista de todos
         EntityModel<User> resource = EntityModel.of(usuario,
-                linkTo(methodOn(UserController.class).obtenerUsuario(email)).withSelfRel(),
-                linkTo(methodOn(UserController.class).obtenerUsuarios(0, 10, "email", "DESC")).withRel("all-users")
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuario(email)).withSelfRel(),
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(0, 10, "email", "DESC")).withRel("all-users")
         );
-
         return ResponseEntity.ok(resource);
     }
 
@@ -79,34 +77,43 @@ public class UserController {
             @RequestParam(defaultValue = "email") String sortBy,
             @RequestParam(defaultValue = "DESC") String direction) {
 
+        //Comprobamos que el numero de pagina y el tamaño de cada una de ellas es mayor a cero, si lo es pondremos los valores por defecto para evitar errores
+        if (page<0 || size <= 0) {
+            page = 0;
+            size = 10;
+        }
+
         //Creamos el objeto Pageable
-        PageRequest pageable = PageRequest.of(0, 10, Sort.Direction.fromString(direction), sortBy);
+        PageRequest pageable = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
 
         Page<User> usuariosObtenidos = userService.obtenerTodosUsuarios(pageable);
         //En el caso de que no se devuelvan usuarios al usuario que los solicita le mandamos un mensaje de que no hay el contenido solicitado
         if (usuariosObtenidos.isEmpty()) return ResponseEntity.noContent().build();
 
 
-        // Transformamos cada User nun EntityModel<User>
+        // Transformamos cada User en un EntityModel<User>, para poder devolver un enlace a si mismo
         List<EntityModel<User>> usuarioModels = usuariosObtenidos.getContent().stream()
                 .map(user -> EntityModel.of(user,
                         WebMvcLinkBuilder.linkTo(methodOn(UserController.class).obtenerUsuario(user.getEmail())).withSelfRel()))
                 .collect(Collectors.toList());
 
         
-        //tenemos que devolver los siguientes links: A si mesmo, a primeira, seguinte, anterior e última páxina, e a un recurso concreto.
-        // Creamos o PagedModel usando a lista de EntityModel e engadimos os links de navegación
+        //Tenemos que devolver los siguientes links: A si mesmo, a primeira, seguinte, anterior e última páxina, e a un recurso concreto.
+        // Creamos el PagedModel usando la lista de EntityModel y añadimos los links de navegación
         PagedModel<EntityModel<User>> pagedModel = PagedModel.of(
                 usuarioModels,
                 new PagedModel.PageMetadata(usuariosObtenidos.getSize(), usuariosObtenidos.getNumber(), usuariosObtenidos.getTotalElements()),
-                WebMvcLinkBuilder.linkTo(methodOn(UserController.class).obtenerUsuarios(page, size, sortBy, direction)).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(methodOn(UserController.class).obtenerUsuarios(0, size, sortBy, direction)).withRel("first"),
-                WebMvcLinkBuilder.linkTo(methodOn(UserController.class).obtenerUsuarios(page + 1, size, sortBy, direction)).withRel("next"),
-                WebMvcLinkBuilder.linkTo(methodOn(UserController.class).obtenerUsuarios(page - 1, size, sortBy, direction)).withRel("prev"),
-                WebMvcLinkBuilder.linkTo(methodOn(UserController.class).obtenerUsuarios(usuariosObtenidos.getTotalPages() - 1, size, sortBy, direction)).withRel("last"),
-                // Engadimos o enlace para obter un usuario específico por email
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(page, size, sortBy, direction)).withSelfRel(),
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(0, size, sortBy, direction)).withRel("first-page"),
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(page + 1, size, sortBy, direction)).withRel("next-page"),
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(usuariosObtenidos.getTotalPages() - 1, size, sortBy, direction)).withRel("last-page"),
                 WebMvcLinkBuilder.linkTo(UserController.class).slash("{email}").withRel("get-user")
         );
+
+        // Condición para agregar el enlace de "página anterior" solo si page > 0
+        if (page > 0) {
+            pagedModel.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(page - 1, size, sortBy, direction)).withRel("prev-page"));
+        }
 
         return ResponseEntity.ok(pagedModel);
     }
@@ -128,21 +135,41 @@ public class UserController {
         // Guardar el nuevo usuario en la base de datos
         userService.crearUsuario(user);
 
-        return ResponseEntity.status(201).body("Usuario registrado exitosamente.");
+        //tenemos que devolver los links a si mismo y a la lista de todos
+         EntityModel<User> recurso = EntityModel.of(
+                 user,
+                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).crearUsuario(user)).withSelfRel(),
+                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(0, 10, "email", "DESC")).withRel("all-users")
+         );
+
+         //Creamos un mapa para enviar el contenido del body correspondiente y a mayores el mensaje de que el usuario se ha creado correctamente
+        Map<String, Object> mapaRespuesta = Map.of(
+                "mensaje", "Usuario registrado correctamente",
+                "recurso", recurso
+        );
+
+        return ResponseEntity.status(201).body(mapaRespuesta);
     }
 
     // Eliminar un usuario por ID
     @DeleteMapping("/{email}")
     //Solo el propio usuario
     @PreAuthorize("#email == authentication.name")
-    public ResponseEntity<Void> eliminarUsuario(@PathVariable String email) {
+    public ResponseEntity<EntityModel<String>> eliminarUsuario(@PathVariable String email) {
         User usuario = userService.obtenerUsuario(email);
         if (usuario == null) {
             return ResponseEntity.notFound().build();
         }
         userService.eliminarUsuario(usuario);
-        //Devolvemos al user un código de éxito y en este caso es un noContent ya que no hace falta devolverle info y se ahorra ancho de banda, lo cual nos hace un sistema más eficiente
-        return ResponseEntity.noContent().build();
+
+        //El tipo del EntityModel siempre coincide con el del primer objeto que se le pasa, en este caso un String
+        EntityModel<String> recurso = EntityModel.of(
+                "Usuario eliminado correctamente",
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(0, 10, "email", "DESC")).withRel("all-users")
+        );
+
+        //Devolvemos al user un código de éxito, diciendo que el usuario se ha eliminado correctamente y un enlace a la lista de todos los users
+        return ResponseEntity.ok(recurso);
     }
 
     @PatchMapping(path = "/{email}")
@@ -180,8 +207,17 @@ public class UserController {
             //Aplicamos las modificaciones a el objeto User deseado invocando al método patch
             User usuarioModificado = patchUtils.patch(usuario, updates);
             userService.actualizarUsuario(usuarioModificado);
+
+            //tenemos que devolver a mayores del usuario links a si mismo y a la lista de todos los usuarios
+            //Tenemos que devolver link a si mismo y a la lista de todos
+            EntityModel<User> resource = EntityModel.of(usuarioModificado,
+                    WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).modificarUsuario(usuario.getEmail(), updates)).withSelfRel(),
+                    WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(0, 10, "email", "DESC")).withRel("all-users")
+            );
+
             //Indicamos que la operación de actualización se ha realizado con éxito
-            return ResponseEntity.ok(usuarioModificado);
+            return ResponseEntity.ok(resource);
+
         } catch (JsonPatchException e) {
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error al aplicar el parche: " + e.getMessage());
