@@ -11,5 +11,7 @@ import org.springframework.data.domain.Pageable;
 @Repository
 //El segundo parametro del mongo repository es el id que va a buscar en relación al primero de los parámetros, en este caso la entidad User
 public interface UserRepository extends MongoRepository<User, String> {
+
+    Page<User> findAll(Pageable pageable);
     Page<User> findByFriendsEmailContaining(String userId, Pageable pageable);
 }

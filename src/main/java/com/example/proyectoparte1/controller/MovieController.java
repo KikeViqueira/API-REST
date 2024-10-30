@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -36,6 +37,8 @@ public class MovieController {
 
     // Obtener todas las películas mediante los filtros del usuario
     @GetMapping
+    //Todos los usuarios logeados
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<Movie>> obtenerTodasPeliculas(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String genres,
@@ -54,6 +57,8 @@ public class MovieController {
     }
 
     @GetMapping("/{movieId}")
+    //Todos los usuarios logeados
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Movie> obtenerPelicula(@PathVariable String movieId) {
         Optional<Movie> movie = movieService.obtenerMovie(movieId);
         if (movie.isEmpty()) {
@@ -63,6 +68,8 @@ public class MovieController {
     }
 
     @PostMapping
+    //Solo los admin
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Movie> crearPelicula(@RequestBody @Valid Movie movie) {
         //Tenemos que saber si existen películas con el título que el usuario le ha dado a su película
         Page<Movie> moviesExistentes = movieService.obtenerMoviesPorTitulo(movie.getTitle());
@@ -80,6 +87,8 @@ public class MovieController {
     }
 
     @PatchMapping("/{movieId}")
+    //Solo los admin
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> modificarPelicula(@PathVariable String movieId , @RequestBody List<Map<String, Object>> updates) {
         //Tenemos que hacer el try para tener en cuenta que el formato del body puede ser erróneo para el patchUtils
         try {
@@ -102,6 +111,8 @@ public class MovieController {
     }
 
     @DeleteMapping("/{movieId}")
+    //Solo los admin
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Movie> eliminarPelicula(@PathVariable String movieId) {
         Optional<Movie> target = movieService.obtenerMovie(movieId);
         if (target.isEmpty()) {

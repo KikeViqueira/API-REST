@@ -5,12 +5,20 @@ import com.example.proyectoparte1.service.UserService;
 import com.example.proyectoparte1.service.PatchUtils;
 import com.github.fge.jsonpatch.JsonPatchException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
 import jakarta.validation.Valid;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -19,6 +27,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/users")
@@ -36,29 +45,73 @@ public class UserController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    //Solo pueden llamar al endpoint el admin, el propio usuario y sus amigos
-    @PreAuthorize("hasRole('ADMIN') or #email == authentication.principal.username")
-    // Obtener un usuario mediante su ID
+
     @GetMapping("/{email}")
-    public ResponseEntity<User> obtenerUsuario(@PathVariable String email) {
+    //Solo pueden llamar al endpoint el admin, el propio usuario y sus amigos
+    //authentication.name: Identificador único del usuario (generalmente username o email), configurable en UserDetailsService.
+    @PreAuthorize("hasRole('ADMIN') or #email == authentication.name or @userService.isAmigo(authentication.name, #email)")
+    // Obtener un usuario mediante su ID
+
+    public ResponseEntity<EntityModel<User>> obtenerUsuario(@PathVariable String email) {
         User usuario = userService.obtenerUsuario(email);
         if (usuario == null) {
             //En el caso de que el usuario no se encuentre en la BD mostramos 404 ya que no se ha encontrado
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(usuario);
+
+        PageRequest pageable = PageRequest.of(0, 10, Sort.Direction.fromString("DESC"), "email");
+
+        EntityModel<User> resource = EntityModel.of(usuario,
+                linkTo(methodOn(UserController.class).obtenerUsuario(email)).withSelfRel(),
+                linkTo(methodOn(UserController.class).obtenerUsuarios(0, 10, "email", "DESC")).withRel("all-users")
+        );
+
+        return ResponseEntity.ok(resource);
     }
 
     // Obtener todos los usuarios
     @GetMapping
-    public ResponseEntity<List<User>> obtenerUsuarios() {
-        List<User> usuariosObtenidos = userService.obtenerTodosUsuarios();
+    //Pueden llamar a este endpoint todos los usuarios logeados
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PagedModel<EntityModel<User>>> obtenerUsuarios(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "email") String sortBy,
+            @RequestParam(defaultValue = "DESC") String direction) {
+
+        //Creamos el objeto Pageable
+        PageRequest pageable = PageRequest.of(0, 10, Sort.Direction.fromString(direction), sortBy);
+
+        Page<User> usuariosObtenidos = userService.obtenerTodosUsuarios(pageable);
         //En el caso de que no se devuelvan usuarios al usuario que los solicita le mandamos un mensaje de que no hay el contenido solicitado
-        if (usuariosObtenidos == null || usuariosObtenidos.isEmpty()) return ResponseEntity.noContent().build();
-        return ResponseEntity.ok(usuariosObtenidos);
+        if (usuariosObtenidos.isEmpty()) return ResponseEntity.noContent().build();
+
+
+        // Transformamos cada User nun EntityModel<User>
+        List<EntityModel<User>> usuarioModels = usuariosObtenidos.getContent().stream()
+                .map(user -> EntityModel.of(user,
+                        WebMvcLinkBuilder.linkTo(methodOn(UserController.class).obtenerUsuario(user.getEmail())).withSelfRel()))
+                .collect(Collectors.toList());
+
+        
+        //tenemos que devolver los siguientes links: A si mesmo, a primeira, seguinte, anterior e última páxina, e a un recurso concreto.
+        // Creamos o PagedModel usando a lista de EntityModel e engadimos os links de navegación
+        PagedModel<EntityModel<User>> pagedModel = PagedModel.of(
+                usuarioModels,
+                new PagedModel.PageMetadata(usuariosObtenidos.getSize(), usuariosObtenidos.getNumber(), usuariosObtenidos.getTotalElements()),
+                WebMvcLinkBuilder.linkTo(methodOn(UserController.class).obtenerUsuarios(page, size, sortBy, direction)).withSelfRel(),
+                WebMvcLinkBuilder.linkTo(methodOn(UserController.class).obtenerUsuarios(0, size, sortBy, direction)).withRel("first"),
+                WebMvcLinkBuilder.linkTo(methodOn(UserController.class).obtenerUsuarios(page + 1, size, sortBy, direction)).withRel("next"),
+                WebMvcLinkBuilder.linkTo(methodOn(UserController.class).obtenerUsuarios(page - 1, size, sortBy, direction)).withRel("prev"),
+                WebMvcLinkBuilder.linkTo(methodOn(UserController.class).obtenerUsuarios(usuariosObtenidos.getTotalPages() - 1, size, sortBy, direction)).withRel("last"),
+                // Engadimos o enlace para obter un usuario específico por email
+                WebMvcLinkBuilder.linkTo(UserController.class).slash("{email}").withRel("get-user")
+        );
+
+        return ResponseEntity.ok(pagedModel);
     }
 
-    // Crear un usuario
+    // Crear un usuario.Puede acceder cualquier persona
     @PostMapping
     /*Si el User no cumple con las validaciones, Spring automáticamente devuelve una respuesta de error con un código de estado 400 (Bad Request)
      sin necesidad de escribir código adicional.*/
@@ -80,6 +133,8 @@ public class UserController {
 
     // Eliminar un usuario por ID
     @DeleteMapping("/{email}")
+    //Solo el propio usuario
+    @PreAuthorize("#email == authentication.name")
     public ResponseEntity<Void> eliminarUsuario(@PathVariable String email) {
         User usuario = userService.obtenerUsuario(email);
         if (usuario == null) {
@@ -91,6 +146,8 @@ public class UserController {
     }
 
     @PatchMapping(path = "/{email}")
+    //Solo el propio usuario
+    @PreAuthorize("#email == authentication.name")
     public ResponseEntity<?> modificarUsuario(@PathVariable("email") String email, @RequestBody List<Map<String, Object>> updates) {
         /*Updates es una lista que contiene pares de clave valor, donde:
         * String hace referencia al atributo que se le va a aplicar las actualizaciones
@@ -134,6 +191,8 @@ public class UserController {
 
     // Eliminar un amigo del usuario
     @DeleteMapping("/{email}/friends/{friendEmail}")
+    //Solo el propio usuario
+    @PreAuthorize("#email == authentication.name")
     public ResponseEntity<?> eliminarAmigo(@PathVariable("email") String email, @PathVariable("friendEmail") String friendEmail) {
         User usuario = userService.obtenerUsuario(email);
         if (usuario == null) {
@@ -155,6 +214,8 @@ public class UserController {
     }
 
     @PostMapping("/{email}/friends")
+    //Solo el propio usuario
+    @PreAuthorize("#email == authentication.name")
     public ResponseEntity<?> anhadirAmigo(@PathVariable String email, @RequestBody @Valid User friend ) {
         //Comprobamos que el user que esta intentando anhadir a amigo a otro user que existe y que no se esté intentando anhadir a el mismo como amigo
         

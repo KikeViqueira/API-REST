@@ -72,13 +72,10 @@ public class SecurityConfiguration {
 
     @Bean
     public RoleHierarchy roleHierarchy() {
-        Map<String, List<String>> roles = new HashMap<>();
-        roles.put("ROLE_ADMIN", Collections.singletonList("ROLE_USER"));
+        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
+        roleHierarchy.setHierarchy("ROLE_ADMIN > ROLE_USER");  // Define aquí la jerarquía
 
-        RoleHierarchyImpl hierarchy = new RoleHierarchyImpl();
-        RoleHierarchyImpl.fromHierarchy(RoleHierarchyUtils.roleHierarchyFromMap(roles));
-
-        return hierarchy;
+        return roleHierarchy;
     }
 
     @Bean

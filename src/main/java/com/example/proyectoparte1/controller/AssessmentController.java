@@ -7,6 +7,7 @@ import com.github.fge.jsonpatch.JsonPatchException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -26,16 +27,36 @@ public class AssessmentController {
         this.patchUtils = patchUtils;
     }
 
-    // Obtener comentarios de una película o de un usuario
-    @GetMapping
-    public ResponseEntity<Page<Assessment>> obtenerComentariosPeliculaUsuario(
-            @RequestParam(required = false) String movieId,
+    // Obtener comentarios de un usuario
+    @GetMapping("/{email}")
+    //Solo pueden llamar al endpoint el admin, el propio usuario y sus amigos
+    //authentication.name: Identificador único del usuario (generalmente username o email), configurable en UserDetailsService.
+    @PreAuthorize("hasRole('ADMIN') or #email == authentication.name or @userService.isAmigo(authentication.name, #email)")
+    public ResponseEntity<Page<Assessment>> obtenerComentariosUsuario(
             @RequestParam(required = false) String email,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "rating") String sortBy,
             @RequestParam(defaultValue = "ASC") String direction) {
-        Page<Assessment> assessments = assessmentService.obtenerComentarioFiltrado(movieId, email, page, size, sortBy, direction);
+        Page<Assessment> assessments = assessmentService.obtenerComentariosUsuario(email, page, size, sortBy, direction);
+
+        if (assessments != null && assessments.getTotalElements() > 0) {
+            return ResponseEntity.ok(assessments);
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+
+    // Obtener comentarios de una película
+    @GetMapping("/{movieId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Page<Assessment>> obtenerComentariosPelicula(
+            @RequestParam(required = false) String movieId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "rating") String sortBy,
+            @RequestParam(defaultValue = "ASC") String direction) {
+        Page<Assessment> assessments = assessmentService.obtenerComentariosPelicula(movieId,page, size, sortBy, direction);
 
         if (assessments != null && assessments.getTotalElements() > 0) {
             return ResponseEntity.ok(assessments);
@@ -47,6 +68,8 @@ public class AssessmentController {
 
     // Añadir un nuevo comentario
     @PostMapping
+    //Usuarios logeados
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Assessment> anhadirComentario(
             @RequestBody Assessment comentario) {
         Assessment assessment = assessmentService.crearComentario(comentario);
@@ -58,6 +81,8 @@ public class AssessmentController {
 
     // Modificar comentario utilizando PATCH y JsonPatch
     @PatchMapping(path = "/{commentId}")
+    //Solo puede el propio usuario que ha hecho el comment
+    @PreAuthorize("@assessmentService.checkCommentUser(#commentId, authentication.name)")
     public ResponseEntity<?> modificarComentarioParcialmente(
             @PathVariable String commentId,
             @RequestBody List<Map<String, Object>> updates) {
@@ -81,6 +106,8 @@ public class AssessmentController {
 
     // Eliminar comentario
     @DeleteMapping("/{commentId}")
+    //Solo el propio usuario y los admin
+    @PreAuthorize("hasRole('ADMIN') or @assessmentService.checkCommentUser(#commentId, authentication.name)")
     public ResponseEntity<Assessment> eliminarComentario(
             @PathVariable String commentId) {
         Assessment assessment = assessmentService.eliminarComentario(commentId);

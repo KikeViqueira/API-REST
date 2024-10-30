@@ -3,6 +3,8 @@ package com.example.proyectoparte1.filter;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -21,7 +23,7 @@ import java.util.List;
 public class AuthorizationFilter extends BasicAuthenticationFilter {
     private final Key key;
 
-    public AuthorizationFilter(AuthenticationManager manager, Key key){
+    public AuthorizationFilter(AuthenticationManager manager, Key key) {
         super(manager);
         this.key = key;
     }
@@ -61,11 +63,13 @@ public class AuthorizationFilter extends BasicAuthenticationFilter {
 
     private UsernamePasswordAuthenticationToken getAuthentication(String token) throws ExpiredJwtException {
         // Creamos un parser para o token coa clave de firmado da nosa aplicación
+
+        System.out.println(token);
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
                 // Parseamos o corpo do token
-                .parseClaimsJws(token.replace("Bearer", "").trim())
+                .parseClaimsJws(token.replace("Bearer ", "").trim())
                 .getBody();
 
         // Obtemos o nome do propietario do token

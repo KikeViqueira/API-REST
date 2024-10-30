@@ -19,7 +19,23 @@ public class AssessmentService {
         this.assessmentRepository = assessmentRepository;
     }
 
-    public Page<Assessment> obtenerComentarioFiltrado(String movieId, String email, int page, int size, String sortBy, String direction) {
+
+
+    public Page<Assessment> obtenerComentariosUsuario(String email, int page, int size, String sortBy, String direction) {
+
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
+
+
+        if(email != null && !email.isEmpty()) {
+            //Lo mismo pero en el caso de un user específico
+            return assessmentRepository.findByUserEmailContaining(email, pageRequest);
+        }
+
+        return assessmentRepository.findAll(pageRequest);
+
+    }
+    public Page<Assessment> obtenerComentariosPelicula(String movieId, int page, int size, String sortBy, String direction) {
+
         PageRequest pageRequest = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
 
         if(movieId != null && !movieId.isEmpty()) {
@@ -27,13 +43,10 @@ public class AssessmentService {
             return assessmentRepository.findByMovieIdContaining(movieId, pageRequest);
         }
 
-        if(email != null && !email.isEmpty()) {
-            //Lo mismo pero en el caso de un user específico
-            return assessmentRepository.findByUserEmailContaining(email, pageRequest);
-        }
-        //En el caso de que el usuario no haya especificado filtros tenemos que devolver todos los comments
         return assessmentRepository.findAll(pageRequest);
+
     }
+
 
     public Assessment obtenerComentario(String commentId){
         Optional<Assessment> optionalAssessment = assessmentRepository.findById(commentId);
@@ -69,5 +82,14 @@ public class AssessmentService {
         }
         assessmentRepository.deleteById(assessmentId);
         return optional.get();
+    }
+
+    public Boolean checkCommentUser(String commentId, String email){
+        Assessment assessment = obtenerComentario(commentId);
+        if(assessment == null){
+            return false;
+        }
+        //Miramos si el autor del comentario es quien lo quiere eliminar
+        return assessment.getUser().getEmail().equals(email);
     }
 }

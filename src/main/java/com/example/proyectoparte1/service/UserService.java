@@ -26,8 +26,9 @@ public class UserService {
         return userRepository.findById(email).orElse(null);
     }
 
-    public List<User> obtenerTodosUsuarios() {
-        return userRepository.findAll();
+    public Page<User> obtenerTodosUsuarios(Pageable pageable) {
+
+        return userRepository.findAll(pageable);
     }
 
     public User crearUsuario(User user) {
@@ -81,20 +82,60 @@ public class UserService {
         // Si la lista de amigos es null, creamos una nueva lista
         if (friendsList == null) {
             friendsList = new ArrayList<>();
-            friendsList.add(friend);
+
+            //Creamos una nueva instacia de user para guardar en la lista solo el email y el nombre
+            User friendFiltrado = new User();
+            friendFiltrado.setEmail(friend.getEmail());
+            friendFiltrado.setName(friend.getName());
+            friendsList.add(friendFiltrado);
+
+
             mainUser.setFriends(friendsList);
             return userRepository.save(mainUser);
         }
         else{
             //En el caso de que ya exista la lista de amigos , miramos si el usuario que queremos anhadir a amigo no lo es ya
             if(!friendsList.contains(friend)){
-                friendsList.add(friend); // Añadimos el nuevo amigo a la lista
+                //Creamos una nueva instacia de user para guardar en la lista solo el email y el nombre
+                User friendFiltrado = new User();
+                friendFiltrado.setEmail(friend.getEmail());
+                friendFiltrado.setName(friend.getName());
+                friendsList.add(friendFiltrado);
                 mainUser.setFriends(friendsList); // Establecemos la lista actualizada de nuevo en el objeto
                 //Guardamos la lista de amigos en la BD
                 return userRepository.save(mainUser);
             }
         }
         return null;
+    }
+
+
+    public Boolean isAmigo(String mainEmail, String friendEmail) {
+
+        /*
+        No es necesario comprobar si mainEmail y friendEmail son el mismo dentro de la función isAmigo, porque ya estás manejando ese caso en la condición
+         de @PreAuthorize con #email == authentication.principal.username. Eso significa que la función isAmigo solo se llama si el usuario autenticado no
+          es el propio usuario, y solo necesita verificar si el usuario es amigo del propietario de la información.
+        */
+
+        // Recuperamos a los usuarios
+        User mainUser = userRepository.findById(mainEmail).orElse(null);
+        User friendUser = userRepository.findById(friendEmail).orElse(null);
+
+        // Si cualquiera de los usuarios no existe, devolvemos false
+        if (mainUser == null || friendUser == null) {
+            return false;
+        }
+
+        // Verificamos si friendEmail está en la lista de amigos de mainUser
+        for (User friend : mainUser.getFriends()) {
+            if (friend.getEmail().equals(friendEmail)) { // Compara con friendEmail, no mainEmail
+                return true;
+            }
+        }
+
+        // Si no está en la lista, no son amigos
+        return false;
     }
 }
 

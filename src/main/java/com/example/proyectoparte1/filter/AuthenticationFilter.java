@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
     private final AuthenticationManager manager;
     private final Key key;
+
 
     // Establecemos unha duración para os tokens
     private static long TOKEN_DURATION = Duration.ofMinutes(60).toMillis();
@@ -78,7 +81,7 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
                 // Engadimos un atributo máis ao corpo do token cos roles do usuario
                 .claim("roles", authorities)
                 // Asinamos o token coa nosa clave secreta
-                .signWith(key);
+                .signWith(key, SignatureAlgorithm.HS512);
 
         // Envía el token en el encabezado de la respuesta para que el cliente pueda usarlo en solicitudes futuras
         response.addHeader("Authentication", String.format("Bearer %s", tokenBuilder.compact()));
