@@ -26,8 +26,9 @@ public class UserService {
         return userRepository.findById(email).orElse(null);
     }
 
-    public Page<User> obtenerTodosUsuarios(Pageable pageable) {
-
+    public Page<User> obtenerTodosUsuarios(int page, int size, String sortBy, String direction) {
+        //Creamos el objeto Pageable
+        PageRequest pageable = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
         return userRepository.findAll(pageable);
     }
 

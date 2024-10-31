@@ -83,10 +83,9 @@ public class UserController {
             size = 10;
         }
 
-        //Creamos el objeto Pageable
-        PageRequest pageable = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
 
-        Page<User> usuariosObtenidos = userService.obtenerTodosUsuarios(pageable);
+
+        Page<User> usuariosObtenidos = userService.obtenerTodosUsuarios(page, size, sortBy, direction);
         //En el caso de que no se devuelvan usuarios al usuario que los solicita le mandamos un mensaje de que no hay el contenido solicitado
         if (usuariosObtenidos.isEmpty()) return ResponseEntity.noContent().build();
 

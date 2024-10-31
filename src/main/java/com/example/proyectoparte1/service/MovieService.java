@@ -33,8 +33,12 @@ public class MovieService {
         this.assessmentRepository = assessmentRepository;
     }
 
-    public Optional<Movie> obtenerMovie(String id){
-        return movieRepository.findById(id);
+    public Movie obtenerMovie(String id){
+        Optional<Movie> movie = movieRepository.findById(id);
+        if(movie.isEmpty()){
+            return null;
+        }
+        return movie.get();
     }
 
     public Page<Movie> obtenerMoviesPorTitulo(String title){
@@ -45,7 +49,7 @@ public class MovieService {
         return movieRepository.findByTitle(title, pageRequest);
     }
 
-    public Page<Movie> obtenerTodasMovies(String keyword, String genre, LocalDate releaseDate, String crew, String cast, int page, int size, String sortBy, String direction) {
+    public Page<Movie> obtenerTodasMovies(String keyword, String genre, DateCustom releaseDate, String crew, String cast, int page, int size, String sortBy, String direction) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
         Query query = new Query();
 
@@ -64,11 +68,8 @@ public class MovieService {
         }
 
         if(releaseDate != null) {
-            DateCustom customDate = new DateCustom();
-            customDate.setYear(releaseDate.getYear());
-            customDate.setMonth(releaseDate.getMonthValue());
-            customDate.setDay(releaseDate.getDayOfMonth());
-            query.addCriteria(Criteria.where("releaseDate").is(customDate));
+
+            query.addCriteria(Criteria.where("releaseDate").is(releaseDate));
         }
 
         if(crew != null) {
