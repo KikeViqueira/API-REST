@@ -74,7 +74,7 @@ public class AssessmentController {
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosUsuario(email,0, size, sortBy, direction)).withRel("first-page"),
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosUsuario(email,page + 1, size, sortBy, direction)).withRel("next-page"),
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosUsuario(email,comentariosUsuario.getTotalPages() - 1, size, sortBy, direction)).withRel("last-page"),
-                WebMvcLinkBuilder.linkTo(UserController.class).slash("{email}").withRel("get-user")
+                WebMvcLinkBuilder.linkTo(UserController.class).slash(email).withRel("get-user")
         );
 
         // Condición para agregar el enlace de "página anterior" solo si page > 0
@@ -121,7 +121,7 @@ public class AssessmentController {
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosPelicula(movieId,0, size, sortBy, direction)).withRel("first-page"),
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosPelicula(movieId,page + 1, size, sortBy, direction)).withRel("next-page"),
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosPelicula(movieId,comentariosPelicula.getTotalPages() - 1, size, sortBy, direction)).withRel("last-page"),
-                WebMvcLinkBuilder.linkTo(UserController.class).slash("{email}").withRel("get-user")
+                WebMvcLinkBuilder.linkTo(MovieController.class).slash(movieId).withRel("get-movie")
         );
 
         // Condición para agregar el enlace de "página anterior" solo si page > 0

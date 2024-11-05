@@ -21,6 +21,7 @@ import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,7 @@ public class MovieController {
     public ResponseEntity<PagedModel<EntityModel<Movie>>> obtenerTodasPeliculas(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String genres,
-            @RequestParam(required = false) DateCustom releaseDate,
+            @RequestParam(required = false) String releaseDate,
             @RequestParam(required = false) String crew,
             @RequestParam(required = false) String cast,
             @RequestParam(defaultValue = "0") int page,
@@ -55,13 +56,19 @@ public class MovieController {
             @RequestParam(defaultValue = "title") String sortBy,
             @RequestParam(defaultValue = "ASC") String direction) {
 
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        LocalDate date = LocalDate.parse(releaseDate, formatter);
+
+        DateCustom convertedReleaseDate =  new DateCustom(date.getDayOfMonth(), date.getMonthValue(), date.getYear());
+
         //Comprobamos que el numero de pagina y el tamaño de cada una de ellas es mayor a cero, si lo es pondremos los valores por defecto para evitar errores
         if (page<0 || size <= 0) {
             page = 0;
             size = 10;
         }
 
-        Page<Movie> peliculas = movieService.obtenerTodasMovies(keyword, genres, releaseDate, crew, cast, page, size, sortBy, direction);
+        Page<Movie> peliculas = movieService.obtenerTodasMovies(keyword, genres, convertedReleaseDate, crew, cast, page, size, sortBy, direction);
 
         //En el caso de que no se devuelvan usuarios al usuario que los solicita le mandamos un mensaje de que no hay el contenido solicitado
         if (peliculas.isEmpty()) return ResponseEntity.noContent().build();
@@ -83,7 +90,7 @@ public class MovieController {
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas(keyword, genres, releaseDate, crew, cast, 0, size, sortBy, direction)).withRel("first-page"),
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas(keyword, genres, releaseDate, crew, cast, page+1, size, sortBy, direction)).withRel("next-page"),
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas(keyword, genres, releaseDate, crew, cast, peliculas.getTotalPages()-1, size, sortBy, direction)).withRel("last-page"),
-                WebMvcLinkBuilder.linkTo(UserController.class).slash("{movieID}").withRel("get-movie")
+                WebMvcLinkBuilder.linkTo(UserController.class).slash("415263").withRel("get-movie")
         );
 
         // Condición para agregar el enlace de "página anterior" solo si page > 0
@@ -104,7 +111,7 @@ public class MovieController {
         //Tenemos que devolver link a si mismo y a la lista de todos
         EntityModel<Movie> resource = EntityModel.of(movie,
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerPelicula(movieId)).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas("{keyword}", "{genre}", new DateCustom(12, 10, 2012), "{crewName}", "{castName}", 0, 10, "movieId", "DESC")).withRel("all-movies")
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas("period", "Drama", "01-06-2015", "Jay Craven", "Jacqueline Bisset", 0, 10, "movieId", "DESC")).withRel("all-movies")
         );
         return ResponseEntity.ok(resource);
     }
@@ -126,7 +133,8 @@ public class MovieController {
 
         EntityModel<Movie> resource = EntityModel.of(nuevaPelicula,
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerPelicula(movie.getId())).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas("{keyword}", "{genre}", new DateCustom(12, 10, 2012), "{crewName}", "{castName}", 0, 10, "movieId", "DESC")).withRel("all-movies")
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas("period", "Drama", "01-06-2015", "Jay Craven", "Jacqueline Bisset", 0, 10, "movieId", "DESC")).withRel("all-movies")
+
         );
         return ResponseEntity.ok(resource);
 
@@ -149,8 +157,8 @@ public class MovieController {
 
             //Tenemos que devolver link a si mismo y a la lista de todos
             EntityModel<Movie> resource = EntityModel.of(movieModificada,
-                    WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieService.class).obtenerMovie(movieId)).withSelfRel(),
-                    WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieService.class).obtenerTodasMovies("{keyword}", "{genre}", new DateCustom(12, 10, 2012), "{crewName}", "{castName}", 0, 10, "movieId", "DESC")).withRel("all-movies")
+                    WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerPelicula(movieId)).withSelfRel(),
+                    WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas("period", "Drama", "01-06-2015", "Jay Craven", "Jacqueline Bisset", 0, 10, "movieId", "DESC")).withRel("all-movies")
             );
             return ResponseEntity.ok(resource);
 
@@ -173,7 +181,7 @@ public class MovieController {
 
         //Tenemos que devolver link a si mismo y a la lista de todos
         EntityModel<String> resource = EntityModel.of("Pelicula eliminada correctamente",
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieService.class).obtenerTodasMovies("{keyword}", "{genre}", new DateCustom(12, 10, 2012), "{crewName}", "{castName}", 0, 10, "movieId", "DESC")).withRel("all-movies")
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas("period", "Drama", "01-06-2015", "Jay Craven", "Jacqueline Bisset", 0, 10, "movieId", "DESC")).withRel("all-movies")
         );
         return ResponseEntity.ok(resource);
     }

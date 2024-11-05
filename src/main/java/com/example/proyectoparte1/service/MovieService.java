@@ -60,7 +60,7 @@ public class MovieService {
             /*Dentro de la lista de keywords usamos la expresión regular para encontrar las películas que la contengan en la lista de keywords
             * La opción i significa que no distingue entre minúsculas y mayúsculas*/
 
-            query.addCriteria(Criteria.where("keywords").regex(keyword, "i"));
+            query.addCriteria(Criteria.where("keywords").regex(keyword, "s"));
         }
 
         if(genre != null) {
