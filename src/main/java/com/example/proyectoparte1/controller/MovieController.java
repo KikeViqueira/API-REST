@@ -32,6 +32,13 @@ import java.util.stream.Collectors;
 @RequestMapping("/movies")
 public class MovieController {
 
+
+    /**
+     * URL de getMovies pocha sin parametros
+     * Al pasar token que no se conoce tenemos que hacer que no de internal Error
+     * Quitar prints token en general
+     * */
+
     private final MovieService movieService;
     private final PatchUtils patchUtils;
 
@@ -56,11 +63,15 @@ public class MovieController {
             @RequestParam(defaultValue = "title") String sortBy,
             @RequestParam(defaultValue = "ASC") String direction) {
 
+        DateCustom convertedReleaseDate = null;
+        //verificamos si el releaseDate es distinto de null
+        if(releaseDate != null) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+            LocalDate date = LocalDate.parse(releaseDate, formatter);
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-        LocalDate date = LocalDate.parse(releaseDate, formatter);
+           convertedReleaseDate =  new DateCustom(date.getDayOfMonth(), date.getMonthValue(), date.getYear());
+        }
 
-        DateCustom convertedReleaseDate =  new DateCustom(date.getDayOfMonth(), date.getMonthValue(), date.getYear());
 
         //Comprobamos que el numero de pagina y el tamaño de cada una de ellas es mayor a cero, si lo es pondremos los valores por defecto para evitar errores
         if (page<0 || size <= 0) {
@@ -172,7 +183,7 @@ public class MovieController {
     @DeleteMapping("/{movieId}")
     //Solo los admin
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<EntityModel<String>> eliminarPelicula(@PathVariable String movieId) {
+    public ResponseEntity<EntityModel<Movie>> eliminarPelicula(@PathVariable String movieId) {
         Movie target = movieService.obtenerMovie(movieId);
         if (target == null) {
             return ResponseEntity.notFound().build();
@@ -180,7 +191,7 @@ public class MovieController {
         movieService.eliminarPelicula(movieId);
 
         //Tenemos que devolver link a si mismo y a la lista de todos
-        EntityModel<String> resource = EntityModel.of("Pelicula eliminada correctamente",
+        EntityModel<Movie> resource = EntityModel.of(target,
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas("period", "Drama", "01-06-2015", "Jay Craven", "Jacqueline Bisset", 0, 10, "movieId", "DESC")).withRel("all-movies")
         );
         return ResponseEntity.ok(resource);

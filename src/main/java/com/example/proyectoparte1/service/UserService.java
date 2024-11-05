@@ -123,14 +123,14 @@ public class UserService {
         User mainUser = userRepository.findById(mainEmail).orElse(null);
         User friendUser = userRepository.findById(friendEmail).orElse(null);
 
-        // Si cualquiera de los usuarios no existe, devolvemos false
-        if (mainUser == null || friendUser == null) {
+        // Si cualquiera de los usuarios no existe o si en la lista de amigos del user que estamos intentando obtener es null, devolvemos false
+        if (mainUser == null || friendUser == null || friendUser.getFriends() == null) {
             return false;
         }
 
-        // Verificamos si friendEmail está en la lista de amigos de mainUser
-        for (User friend : mainUser.getFriends()) {
-            if (friend.getEmail().equals(friendEmail)) { // Compara con friendEmail, no mainEmail
+        // Verificamos si mainUser está en la lista de amigos de el usuario objetivo, en este caso friendUser
+        for (User friend : friendUser.getFriends()) {
+            if (friend.getEmail().equals(mainEmail)) { // Compara con mainEmail para ver si el usuario es amigo
                 return true;
             }
         }

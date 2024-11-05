@@ -34,6 +34,11 @@ import java.util.stream.Collectors;
 @Validated
 public class UserController {
 
+    /*
+    * Cuando obtenemos la info de un user tenemos que ocultar su contraseña
+    * Encriptar contra si se cambia en patch
+    * */
+
     private final UserService userService;
     private final PatchUtils patchUtils;
     private final PasswordEncoder passwordEncoder;
@@ -83,8 +88,6 @@ public class UserController {
             size = 10;
         }
 
-
-
         Page<User> usuariosObtenidos = userService.obtenerTodosUsuarios(page, size, sortBy, direction);
         //En el caso de que no se devuelvan usuarios al usuario que los solicita le mandamos un mensaje de que no hay el contenido solicitado
         if (usuariosObtenidos.isEmpty()) return ResponseEntity.noContent().build();
@@ -106,7 +109,7 @@ public class UserController {
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(0, size, sortBy, direction)).withRel("first-page"),
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(page + 1, size, sortBy, direction)).withRel("next-page"),
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(usuariosObtenidos.getTotalPages() - 1, size, sortBy, direction)).withRel("last-page"),
-                WebMvcLinkBuilder.linkTo(UserController.class).slash("{email}").withRel("get-user")
+                WebMvcLinkBuilder.linkTo(UserController.class).slash("example@example.com").withRel("get-user")
         );
 
         // Condición para agregar el enlace de "página anterior" solo si page > 0
@@ -154,16 +157,16 @@ public class UserController {
     @DeleteMapping("/{email}")
     //Solo el propio usuario
     @PreAuthorize("#email == authentication.name")
-    public ResponseEntity<EntityModel<String>> eliminarUsuario(@PathVariable String email) {
+    public ResponseEntity<EntityModel<User>> eliminarUsuario(@PathVariable String email) {
         User usuario = userService.obtenerUsuario(email);
         if (usuario == null) {
             return ResponseEntity.notFound().build();
         }
         userService.eliminarUsuario(usuario);
 
-        //El tipo del EntityModel siempre coincide con el del primer objeto que se le pasa, en este caso un String
-        EntityModel<String> recurso = EntityModel.of(
-                "Usuario eliminado correctamente",
+        //El tipo del EntityModel siempre coincide con el del primer objeto que se le pasa, en este caso un objeto User
+        EntityModel<User> recurso = EntityModel.of(
+                usuario,
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(0, 10, "email", "DESC")).withRel("all-users")
         );
 
