@@ -31,7 +31,7 @@ public class AssessmentService {
             return assessmentRepository.findByUserEmailContaining(email, pageRequest);
         }
 
-        return assessmentRepository.findAll(pageRequest);
+        return null;
 
     }
     public Page<Assessment> obtenerComentariosPelicula(String movieId, int page, int size, String sortBy, String direction) {
@@ -43,7 +43,7 @@ public class AssessmentService {
             return assessmentRepository.findByMovieIdContaining(movieId, pageRequest);
         }
 
-        return assessmentRepository.findAll(pageRequest);
+        return null;
 
     }
 

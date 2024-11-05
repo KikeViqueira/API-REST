@@ -6,8 +6,6 @@ import com.example.proyectoparte1.service.PatchUtils;
 import com.github.fge.jsonpatch.JsonPatchException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,12 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
 import jakarta.validation.Valid;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +30,6 @@ import java.util.stream.Collectors;
 public class UserController {
 
     /*
-    * Cuando obtenemos la info de un user tenemos que ocultar su contraseña
     * Encriptar contra si se cambia en patch
     * */
 
@@ -204,6 +198,12 @@ public class UserController {
                     Map<String, String> errorResponse = new HashMap<>();
                     errorResponse.put("error", "El campo 'birthday' no se puede modificar.");
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+                }
+                else if (path != null && path.equals("/password")) {
+                    // Encriptar la contraseña antes de aplicar el parche
+                    String rawPassword = (String) update.get("value");
+                    String encodedPassword = passwordEncoder.encode(rawPassword);
+                    update.put("value", encodedPassword); // Actualizar el valor con la contraseña encriptada
                 }
             }
             //Aplicamos las modificaciones a el objeto User deseado invocando al método patch

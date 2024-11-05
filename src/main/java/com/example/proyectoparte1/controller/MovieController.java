@@ -32,13 +32,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/movies")
 public class MovieController {
 
-
-    /**
-     * URL de getMovies pocha sin parametros
-     * Al pasar token que no se conoce tenemos que hacer que no de internal Error
-     * Quitar prints token en general
-     * */
-
     private final MovieService movieService;
     private final PatchUtils patchUtils;
 

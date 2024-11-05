@@ -10,6 +10,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.hateoas.PagedModel;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +19,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +30,12 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/comments")
 public class AssessmentController {
+
+    /**
+     * Tenemos que comprobar user y movie si existen, el usuario si es el mismo al que hace la petición
+     *
+     * */
+
 
     private final AssessmentService assessmentService;
     private final PatchUtils patchUtils;
@@ -37,12 +47,12 @@ public class AssessmentController {
     }
 
     // Obtener comentarios de un usuario
-    @GetMapping("/{email}")
+    @GetMapping("/user/{email}")
     //Solo pueden llamar al endpoint el admin, el propio usuario y sus amigos
     //authentication.name: Identificador único del usuario (generalmente username o email), configurable en UserDetailsService.
     @PreAuthorize("hasRole('ADMIN') or #email == authentication.name or @userService.isAmigo(authentication.name, #email)")
     public ResponseEntity<PagedModel<Assessment>> obtenerComentariosUsuario(
-            @RequestParam(required = false) String email,
+            @PathVariable String email,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "rating") String sortBy,
@@ -88,10 +98,10 @@ public class AssessmentController {
 
 
     // Obtener comentarios de una película
-    @GetMapping("/{movieId}")
+    @GetMapping("/movie/{movieId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PagedModel<Assessment>> obtenerComentariosPelicula(
-            @RequestParam(required = false) String movieId,
+            @PathVariable String movieId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "rating") String sortBy,
@@ -104,7 +114,7 @@ public class AssessmentController {
         }
 
         //Creamos el objeto Pageable
-        Page<Assessment> comentariosPelicula = assessmentService.obtenerComentariosUsuario(movieId, page, size, sortBy, direction);
+        Page<Assessment> comentariosPelicula = assessmentService.obtenerComentariosPelicula(movieId, page, size, sortBy, direction);
 
         if (comentariosPelicula.isEmpty()) return ResponseEntity.noContent().build();
 
@@ -137,9 +147,26 @@ public class AssessmentController {
     // Añadir un nuevo comentario
     @PostMapping
     //Usuarios logeados
+
+    /*
+    Esto significa que un usuario solo puede añadir comentarios en su propio nombre y no en el de otros usuarios,
+    evitando que cualquier usuario autenticado pueda crear comentarios en nombre de otros.
+    */
+
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<EntityModel<Assessment>> anhadirComentario(
             @RequestBody Assessment comentario) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String authenticatedUsername = authentication.getName();
+
+        if(comentario==null || comentario.getUser()==null || comentario.getMovie()==null){
+            return ResponseEntity.badRequest().build();
+        }
+
+        if(!comentario.getUser().getEmail().equals(authenticatedUsername)){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         Assessment assessment = assessmentService.crearComentario(comentario);
         if (assessment == null) {
             return ResponseEntity.notFound().build();
@@ -149,7 +176,7 @@ public class AssessmentController {
         EntityModel<Assessment> resource = EntityModel.of(
                 assessment,
                 WebMvcLinkBuilder.linkTo(MovieController.class).slash(assessment.getMovie().getId()).withRel("get-movie"),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosPelicula(assessment.getMovie().getId(), 0, 10, "rating", "DESC")).withSelfRel()
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosPelicula(assessment.getMovie().getId(), 0, 10, "rating", "DESC")).withRel("comments-movie")
         );
 
         return ResponseEntity.ok(resource);
@@ -195,15 +222,15 @@ public class AssessmentController {
     @DeleteMapping("/{commentId}")
     //Solo el propio usuario y los admin
     @PreAuthorize("hasRole('ADMIN') or @assessmentService.checkCommentUser(#commentId, authentication.name)")
-    public ResponseEntity<EntityModel<String>> eliminarComentario(
+    public ResponseEntity<EntityModel<Assessment>> eliminarComentario(
             @PathVariable String commentId) {
         Assessment assessment = assessmentService.eliminarComentario(commentId);
         if (assessment == null) {
             return ResponseEntity.notFound().build();
         }
 
-        EntityModel<String> resource = EntityModel.of(
-                "Comentario eliminado correctamente",
+        EntityModel<Assessment> resource = EntityModel.of(
+                assessment,
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosPelicula(assessment.getMovie().getId(), 0, 10, "rating", "DESC")).withRel("get-film-comments"),
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosUsuario(assessment.getUser().getEmail(), 0, 10, "rating", "DESC")).withRel("get-user-comments")
         );
