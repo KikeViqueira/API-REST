@@ -1,24 +1,26 @@
 package com.example.proyectoparte1.controller;
 
 import com.example.proyectoparte1.model.Assessment;
-import com.example.proyectoparte1.model.User;
 import com.example.proyectoparte1.service.AssessmentService;
 import com.example.proyectoparte1.service.PatchUtils;
 import com.github.fge.jsonpatch.JsonPatchException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -27,15 +29,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 @RestController
 @RequestMapping("/comments")
+@Tag(name = "Assessment API", description = "Operaciones relacionadas con los comentarios de películas")
+@SecurityRequirement(name = "JWT")
 public class AssessmentController {
-
-    /**
-     * Tenemos que comprobar user y movie si existen, el usuario si es el mismo al que hace la petición
-     *
-     * */
-
 
     private final AssessmentService assessmentService;
     private final PatchUtils patchUtils;
@@ -46,95 +46,81 @@ public class AssessmentController {
         this.patchUtils = patchUtils;
     }
 
-    // Obtener comentarios de un usuario
     @GetMapping("/user/{email}")
-    //Solo pueden llamar al endpoint el admin, el propio usuario y sus amigos
-    //authentication.name: Identificador único del usuario (generalmente username o email), configurable en UserDetailsService.
     @PreAuthorize("hasRole('ADMIN') or #email == authentication.name or @userService.isAmigo(authentication.name, #email)")
+    @Operation(
+            summary = "Obtener comentarios de un usuario",
+            description = "Obtiene una lista paginada de los comentarios de un usuario específico. Solo accesible por el usuario, sus amigos o un administrador.",
+            operationId = "obtenerComentariosUsuario"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de comentarios del usuario obtenida", content = @Content(schema = @Schema(implementation = PagedModel.class))),
+            @ApiResponse(responseCode = "204", description = "No hay contenido", content = @Content),
+            @ApiResponse(responseCode = "403", description = "No tiene permisos para acceder a este recurso", content = @Content)
+    })
     public ResponseEntity<PagedModel<Assessment>> obtenerComentariosUsuario(
-            @PathVariable String email,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "rating") String sortBy,
-            @RequestParam(defaultValue = "ASC") String direction) {
+            @Parameter(description = "Correo del usuario", required = true) @PathVariable String email,
+            @Parameter(description = "Número de página") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamaño de página") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Campo de ordenación") @RequestParam(defaultValue = "rating") String sortBy,
+            @Parameter(description = "Dirección de la ordenación") @RequestParam(defaultValue = "ASC") String direction) {
 
-        //Comprobamos que el numero de pagina y el tamaño de cada una de ellas es mayor a cero, si lo es pondremos los valores por defecto para evitar errores
-        if (page<0 || size <= 0) {
+        if (page < 0 || size <= 0) {
             page = 0;
             size = 10;
         }
 
-        //Creamos el objeto Pageable
-
         Page<Assessment> comentariosUsuario = assessmentService.obtenerComentariosUsuario(email, page, size, sortBy, direction);
-
         if (comentariosUsuario.isEmpty()) return ResponseEntity.noContent().build();
 
-
-        // Obtenemos todos los comentarios de un usuario
         List<Assessment> commentsModel = comentariosUsuario.getContent().stream().toList();
-
-
-        //Tenemos que devolver los siguientes links: Al usuario, a primeira, seguinte, anterior e última páxina, e a un recurso concreto.
-        // Creamos el PagedModel usando la lista y añadimos los links de navegación
         PagedModel<Assessment> resource = PagedModel.of(
                 commentsModel,
                 new PagedModel.PageMetadata(comentariosUsuario.getSize(), comentariosUsuario.getNumber(), comentariosUsuario.getTotalElements()),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosUsuario(email, page, size, sortBy, direction)).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosUsuario(email,0, size, sortBy, direction)).withRel("first-page"),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosUsuario(email,page + 1, size, sortBy, direction)).withRel("next-page"),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosUsuario(email,comentariosUsuario.getTotalPages() - 1, size, sortBy, direction)).withRel("last-page"),
-                WebMvcLinkBuilder.linkTo(UserController.class).slash(email).withRel("get-user")
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosUsuario(email, page, size, sortBy, direction)).withSelfRel()
         );
 
-        // Condición para agregar el enlace de "página anterior" solo si page > 0
         if (page > 0) {
             resource.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosUsuario(email, page - 1, size, sortBy, direction)).withRel("prev-page"));
         }
 
         return ResponseEntity.ok(resource);
-
     }
 
-
-    // Obtener comentarios de una película
     @GetMapping("/movie/{movieId}")
     @PreAuthorize("isAuthenticated()")
+    @Operation(
+            summary = "Obtener comentarios de una película",
+            description = "Obtiene una lista paginada de los comentarios de una película específica",
+            operationId = "obtenerComentariosPelicula"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de comentarios de la película obtenida", content = @Content(schema = @Schema(implementation = PagedModel.class))),
+            @ApiResponse(responseCode = "204", description = "No hay contenido", content = @Content),
+            @ApiResponse(responseCode = "403", description = "No tiene permisos para acceder a este recurso", content = @Content)
+    })
     public ResponseEntity<PagedModel<Assessment>> obtenerComentariosPelicula(
-            @PathVariable String movieId,
+            @Parameter(description = "ID de la película", required = true) @PathVariable String movieId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "rating") String sortBy,
             @RequestParam(defaultValue = "ASC") String direction) {
 
-        //Comprobamos que el numero de pagina y el tamaño de cada una de ellas es mayor a cero, si lo es pondremos los valores por defecto para evitar errores
-        if (page<0 || size <= 0) {
+        if (page < 0 || size <= 0) {
             page = 0;
             size = 10;
         }
 
-        //Creamos el objeto Pageable
         Page<Assessment> comentariosPelicula = assessmentService.obtenerComentariosPelicula(movieId, page, size, sortBy, direction);
-
         if (comentariosPelicula.isEmpty()) return ResponseEntity.noContent().build();
 
-        // Obtenemos todos los comentarios de una pelicula
         List<Assessment> moviesModel = comentariosPelicula.getContent().stream().toList();
-
-
-        //Tenemos que devolver los siguientes links: A la pelicula, a primeira, seguinte, anterior e última páxina, e a un recurso concreto.
-        // Creamos el PagedModel usando la lista y añadimos los links de navegación
         PagedModel<Assessment> resource = PagedModel.of(
                 moviesModel,
                 new PagedModel.PageMetadata(comentariosPelicula.getSize(), comentariosPelicula.getNumber(), comentariosPelicula.getTotalElements()),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosPelicula(movieId, page, size, sortBy, direction)).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosPelicula(movieId,0, size, sortBy, direction)).withRel("first-page"),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosPelicula(movieId,page + 1, size, sortBy, direction)).withRel("next-page"),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosPelicula(movieId,comentariosPelicula.getTotalPages() - 1, size, sortBy, direction)).withRel("last-page"),
-                WebMvcLinkBuilder.linkTo(MovieController.class).slash(movieId).withRel("get-movie")
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosPelicula(movieId, page, size, sortBy, direction)).withSelfRel()
         );
 
-        // Condición para agregar el enlace de "página anterior" solo si page > 0
         if (page > 0) {
             resource.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(AssessmentController.class).obtenerComentariosPelicula(movieId, page - 1, size, sortBy, direction)).withRel("prev-page"));
         }
@@ -142,28 +128,28 @@ public class AssessmentController {
         return ResponseEntity.ok(resource);
     }
 
-
-
-    // Añadir un nuevo comentario
     @PostMapping
-    //Usuarios logeados
-
-    /*
-    Esto significa que un usuario solo puede añadir comentarios en su propio nombre y no en el de otros usuarios,
-    evitando que cualquier usuario autenticado pueda crear comentarios en nombre de otros.
-    */
-
     @PreAuthorize("isAuthenticated()")
+    @Operation(
+            summary = "Añadir un nuevo comentario",
+            description = "Permite a un usuario autenticado añadir un comentario en su propio nombre.",
+            operationId = "anhadirComentario"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Comentario creado exitosamente", content = @Content(schema = @Schema(implementation = Assessment.class))),
+            @ApiResponse(responseCode = "403", description = "No tiene permisos para añadir un comentario en nombre de otro usuario", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Datos de comentario no válidos", content = @Content)
+    })
     public ResponseEntity<EntityModel<Assessment>> anhadirComentario(
-            @RequestBody Assessment comentario) {
+            @Parameter(description = "Detalles del comentario a crear") @RequestBody Assessment comentario) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String authenticatedUsername = authentication.getName();
 
-        if(comentario==null || comentario.getUser()==null || comentario.getMovie()==null){
+        if (comentario == null || comentario.getUser() == null || comentario.getMovie() == null) {
             return ResponseEntity.badRequest().build();
         }
 
-        if(!comentario.getUser().getEmail().equals(authenticatedUsername)){
+        if (!comentario.getUser().getEmail().equals(authenticatedUsername)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
@@ -172,7 +158,6 @@ public class AssessmentController {
             return ResponseEntity.notFound().build();
         }
 
-        //tenemos que devolver un link a la pelicula y a la lista de comentarios de la propia pelicula
         EntityModel<Assessment> resource = EntityModel.of(
                 assessment,
                 WebMvcLinkBuilder.linkTo(MovieController.class).slash(assessment.getMovie().getId()).withRel("get-movie"),
@@ -182,13 +167,22 @@ public class AssessmentController {
         return ResponseEntity.ok(resource);
     }
 
-    // Modificar comentario utilizando PATCH y JsonPatch
     @PatchMapping(path = "/{commentId}")
-    //Solo puede el propio usuario que ha hecho el comment
     @PreAuthorize("@assessmentService.checkCommentUser(#commentId, authentication.name)")
+    @Operation(
+            summary = "Modificar comentario parcialmente",
+            description = "Permite a un usuario modificar parcialmente un comentario que ha realizado usando JSON Patch.",
+            operationId = "modificarComentarioParcialmente"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Comentario modificado exitosamente", content = @Content(schema = @Schema(implementation = Assessment.class))),
+            @ApiResponse(responseCode = "404", description = "Comentario no encontrado", content = @Content),
+            @ApiResponse(responseCode = "400", description = "Error al aplicar modificaciones", content = @Content),
+            @ApiResponse(responseCode = "403", description = "No tiene permisos para modificar este comentario", content = @Content)
+    })
     public ResponseEntity<?> modificarComentarioParcialmente(
-            @PathVariable String commentId,
-            @RequestBody List<Map<String, Object>> updates) {
+            @Parameter(description = "ID del comentario a modificar", required = true) @PathVariable String commentId,
+            @Parameter(description = "Lista de cambios a aplicar") @RequestBody List<Map<String, Object>> updates) {
         try {
             Assessment comentarioExistente = assessmentService.obtenerComentario(commentId);
             if (comentarioExistente == null) {
@@ -196,8 +190,6 @@ public class AssessmentController {
             }
             Assessment comentarioModificado = patchUtils.patch(comentarioExistente, updates);
             assessmentService.modificarComentario(commentId, comentarioModificado);
-
-            //tenemos que decolver los siguientes links: A si mismo, a la lista de comentarios de la peicula y del user
 
             EntityModel<Assessment> resource = EntityModel.of(
                     comentarioModificado,
@@ -208,8 +200,7 @@ public class AssessmentController {
 
             return ResponseEntity.ok(resource);
 
-        }catch (JsonPatchException e) {
-            //En caso de que lance excepción el patchUtils
+        } catch (JsonPatchException e) {
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", "Error al aplicar el parche: " + e.getMessage());
             return ResponseEntity.badRequest().body(errorResponse);
@@ -218,12 +209,21 @@ public class AssessmentController {
         }
     }
 
-    // Eliminar comentario
     @DeleteMapping("/{commentId}")
-    //Solo el propio usuario y los admin
     @PreAuthorize("hasRole('ADMIN') or @assessmentService.checkCommentUser(#commentId, authentication.name)")
+    @Operation(
+            summary = "Eliminar comentario",
+            description = "Permite a un administrador o al propio usuario eliminar un comentario",
+            operationId = "eliminarComentario"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Comentario eliminado exitosamente", content = @Content(schema = @Schema(implementation = Assessment.class))),
+            @ApiResponse(responseCode = "404", description = "Comentario no encontrado", content = @Content),
+            @ApiResponse(responseCode = "403", description = "No tiene permisos para eliminar este comentario", content = @Content)
+    })
     public ResponseEntity<EntityModel<Assessment>> eliminarComentario(
-            @PathVariable String commentId) {
+            @Parameter(description = "ID del comentario a eliminar", required = true) @PathVariable String commentId) {
+
         Assessment assessment = assessmentService.eliminarComentario(commentId);
         if (assessment == null) {
             return ResponseEntity.notFound().build();

@@ -61,20 +61,25 @@ public class UserService {
     }
 
     public User eliminarAmigo(User mainUser, User amigoEliminar) {
-        //Obtenemos la lista de amigos del usuario
+        // Obtenemos la lista de amigos del usuario
         List<User> friendList = mainUser.getFriends();
 
-        //Verificamos si el amigo a eliminar está en la lista de amigos
-        if (friendList != null && friendList.contains(amigoEliminar)) {
-            friendList.remove(amigoEliminar);
-            mainUser.setFriends(friendList);
-            return userRepository.save(mainUser);
+        // Verificamos que la lista de amigos no sea nula
+        if (friendList != null) {
+            // Filtramos la lista para excluir el amigo a eliminar basado en su ID o email
+            boolean removed = friendList.removeIf(amigo -> amigo.getEmail().equals(amigoEliminar.getEmail()));
+
+            // Si se elimina al amigo, guardamos la lista actualizada
+            if (removed) {
+                mainUser.setFriends(friendList);
+                return userRepository.save(mainUser);
+            }
         }
 
-        //Si el usuario a eliminar no estaba en la lista devolvemos null
+        // Si el usuario a eliminar no estaba en la lista, devolvemos null
         return null;
-
     }
+
 
     public User anhadirAmigo(User mainUser, User friend){
 
