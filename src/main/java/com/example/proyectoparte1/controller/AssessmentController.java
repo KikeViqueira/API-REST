@@ -118,8 +118,8 @@ public class AssessmentController {
                                     )
                             }
                     ),
-                    @ApiResponse(responseCode = "204", description = "No hay contenido"),
-                    @ApiResponse(responseCode = "403", description = "No tiene permisos para acceder a este recurso")
+                    @ApiResponse(responseCode = "204", description = "No hay contenido", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "No tiene permisos para acceder a este recurso", content = @Content)
             }
     )
     public ResponseEntity<PagedModel<Assessment>> obtenerComentariosUsuario(
