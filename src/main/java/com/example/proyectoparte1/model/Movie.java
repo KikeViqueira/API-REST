@@ -23,6 +23,7 @@ public class Movie {
     @Schema(
             description = "ID único de la película en la base de datos",
             example = "615d1b2f4f1a4e6f1a4e6f1a"
+
     )
     private String id;
 

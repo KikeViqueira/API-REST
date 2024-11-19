@@ -48,20 +48,80 @@ public class MovieController {
         this.patchUtils = patchUtils;
     }
 
+    // Obtener todas las películas
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(
+            operationId = "obtenerTodasPeliculas",
             summary = "Obtener todas las películas",
             description = "Obtiene una lista paginada de todas las películas según los filtros de búsqueda aplicados",
-            operationId = "obtenerTodasPeliculas"
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Lista de películas obtenida",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = PagedModel.class)),
+                            links = {
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "self",
+                                            operationId = "obtenerTodasPeliculas",
+                                            description = "Enlace a la página actual",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "$request.query.page"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "sortBy", expression = "$request.query.sortBy"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "direction", expression = "$request.query.direction")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "nextPage",
+                                            operationId = "obtenerTodasPeliculas",
+                                            description = "Enlace a la siguiente página",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "$request.query.page + 1"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "prevPage",
+                                            operationId = "obtenerTodasPeliculas",
+                                            description = "Enlace a la página previa",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "$request.query.page - 1"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "firstPage",
+                                            operationId = "obtenerTodasPeliculas",
+                                            description = "Enlace a la primera página",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "0"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "lastPage",
+                                            operationId = "obtenerTodasPeliculas",
+                                            description = "Enlace a la última página",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "$response.body.totalPages - 1"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "movieDetails",
+                                            operationId = "obtenerPelicula",
+                                            description = "Link a una pelicula especifica",
+                                            parameters = @io.swagger.v3.oas.annotations.links.LinkParameter(name = "movieId", expression = "$response.body.content[0].movieId")
+                                    )
+                            }
+                    ),
+                    @ApiResponse(responseCode = "204", description = "No hay contenido", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "No tiene permisos para acceder a este recurso", content = @Content)
+            }
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Lista de películas obtenida", content = @Content(schema = @Schema(implementation = PagedModel.class))),
-            @ApiResponse(responseCode = "204", description = "No hay contenido", content = @Content),
-            @ApiResponse(responseCode = "403", description = "No tiene permisos para acceder a este recurso", content = @Content)
-    })
     public ResponseEntity<PagedModel<EntityModel<Movie>>> obtenerTodasPeliculas(
-            @Parameter(description = "Palabra clave para buscar en el título") @RequestParam(required = false) String keyword,
+            @Parameter(description = "Palabra clave") @RequestParam(required = false) String keyword,
             @Parameter(description = "Géneros de la película") @RequestParam(required = false) String genres,
             @Parameter(description = "Fecha de lanzamiento (formato: dd-MM-yyyy)") @RequestParam(required = false) String releaseDate,
             @Parameter(description = "Nombre del equipo de producción") @RequestParam(required = false) String crew,
@@ -103,18 +163,44 @@ public class MovieController {
         return ResponseEntity.ok(pagedModel);
     }
 
+    // Obtener una película específica
     @GetMapping("/{movieId}")
     @PreAuthorize("isAuthenticated()")
     @Operation(
+            operationId = "obtenerPelicula",
             summary = "Obtener una película específica",
             description = "Obtiene los detalles de una película específica por su ID",
-            operationId = "obtenerPelicula"
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Detalles de la película obtenidos",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Movie.class)),
+                            links = {
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "self",
+                                            operationId = "obtenerPelicula",
+                                            description = "Link al recurso actual",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "movieId", expression = "$request.path.movieId")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "allMovies",
+                                            operationId = "obtenerTodasPeliculas",
+                                            description = "Link a todas las películas",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "0"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "10"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "sortBy", expression = "title"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "direction", expression = "ASC")
+                                            }
+                                    )
+                            }
+                    ),
+                    @ApiResponse(responseCode = "404", description = "Película no encontrada", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "No tiene permisos para acceder a este recurso", content = @Content)
+            }
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Detalles de la película", content = @Content(schema = @Schema(implementation = Movie.class))),
-            @ApiResponse(responseCode = "404", description = "Película no encontrada", content = @Content),
-            @ApiResponse(responseCode = "403", description = "No tiene permisos para acceder a este recurso", content = @Content)
-    })
     public ResponseEntity<EntityModel<Movie>> obtenerPelicula(
             @Parameter(description = "ID de la película", required = true) @PathVariable String movieId) {
         Movie movie = movieService.obtenerMovie(movieId);
@@ -127,18 +213,44 @@ public class MovieController {
         return ResponseEntity.ok(resource);
     }
 
+    // Crear una nueva película
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
+            operationId = "crearPelicula",
             summary = "Crear una nueva película",
             description = "Permite a los administradores crear una nueva película",
-            operationId = "crearPelicula"
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Película creada exitosamente",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Movie.class)),
+                            links = {
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "self",
+                                            operationId = "obtenerPelicula",
+                                            description = "Link al recurso creado",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "movieId", expression = "$response.body.id")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "allMovies",
+                                            operationId = "obtenerTodasPeliculas",
+                                            description = "Link a todas las películas",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "0"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "10"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "sortBy", expression = "title"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "direction", expression = "ASC")
+                                            }
+                                    )
+                            }
+                    ),
+                    @ApiResponse(responseCode = "409", description = "Película ya existe", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "No tiene permisos para crear películas", content = @Content)
+            }
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Película creada exitosamente", content = @Content(schema = @Schema(implementation = Movie.class))),
-            @ApiResponse(responseCode = "409", description = "Película ya existe", content = @Content),
-            @ApiResponse(responseCode = "403", description = "No tiene permisos para crear películas", content = @Content)
-    })
     public ResponseEntity<EntityModel<Movie>> crearPelicula(
             @Parameter(description = "Detalles de la película a crear") @RequestBody @Valid Movie movie) {
 
@@ -155,19 +267,46 @@ public class MovieController {
         return ResponseEntity.ok(resource);
     }
 
+    // Modificar una película
     @PatchMapping("/{movieId}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
+            operationId = "modificarPelicula",
             summary = "Modificar una película existente",
             description = "Permite a los administradores actualizar ciertos atributos de una película",
-            operationId = "modificarPelicula"
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Película modificada exitosamente",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Movie.class)),
+                            links = {
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "self",
+                                            operationId = "obtenerPelicula",
+                                            description = "Link al recurso modificado",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "movieId", expression = "$request.path.movieId")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "allMovies",
+                                            operationId = "obtenerTodasPeliculas",
+                                            description = "Link a todas las películas",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "0"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "10"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "sortBy", expression = "title"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "direction", expression = "ASC")
+                                            }
+                                    )
+                            }
+                    ),
+                    @ApiResponse(responseCode = "404", description = "Película no encontrada", content = @Content),
+                    @ApiResponse(responseCode = "400", description = "Error al aplicar modificaciones", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "No tiene permisos para modificar películas", content = @Content)
+            }
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Película modificada exitosamente", content = @Content(schema = @Schema(implementation = Movie.class))),
-            @ApiResponse(responseCode = "404", description = "Película no encontrada", content = @Content),
-            @ApiResponse(responseCode = "400", description = "Error al aplicar modificaciones", content = @Content),
-            @ApiResponse(responseCode = "403", description = "No tiene permisos para modificar películas", content = @Content)
-    })
+
     public ResponseEntity<?> modificarPelicula(
             @Parameter(description = "ID de la película a modificar", required = true) @PathVariable String movieId,
             @Parameter(description = "Lista de modificaciones") @RequestBody List<Map<String, Object>> updates) {
@@ -194,18 +333,36 @@ public class MovieController {
         }
     }
 
+    // Eliminar una película
     @DeleteMapping("/{movieId}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
+            operationId = "eliminarPelicula",
             summary = "Eliminar una película",
             description = "Permite a los administradores eliminar una película por su ID",
-            operationId = "eliminarPelicula"
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Película eliminada exitosamente",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Movie.class)),
+                            links = {
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "allMovies",
+                                            operationId = "obtenerTodasPeliculas",
+                                            description = "Link a todas las películas",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "0"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "10"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "sortBy", expression = "title"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "direction", expression = "ASC")
+                                            }
+                                    )
+                            }
+                    ),
+                    @ApiResponse(responseCode = "404", description = "Película no encontrada", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "No tiene permisos para eliminar películas", content = @Content)
+            }
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Película eliminada exitosamente", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Película no encontrada", content = @Content),
-            @ApiResponse(responseCode = "403", description = "No tiene permisos para eliminar películas", content = @Content)
-    })
     public ResponseEntity<EntityModel<Movie>> eliminarPelicula(
             @Parameter(description = "ID de la película a eliminar", required = true) @PathVariable String movieId) {
 

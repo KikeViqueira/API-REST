@@ -52,15 +52,38 @@ public class UserController {
     @GetMapping("/{email}")
     @PreAuthorize("hasRole('ADMIN') or #email == authentication.name or @userService.isAmigo(authentication.name, #email)")
     @Operation(
+            operationId = "obtenerUsuario",
             summary = "Obtener detalles de un usuario",
             description = "Obtiene los detalles de un usuario específico. Solo accesible por el administrador, el propio usuario o sus amigos.",
-            operationId = "obtenerUsuario"
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Detalles del usuario",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = User.class)),
+                            links = {
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "self",
+                                            operationId = "obtenerUsuario",
+                                            description = "Link al usuario actual",
+                                            parameters = @io.swagger.v3.oas.annotations.links.LinkParameter(name = "email", expression = "$request.path.email")
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "allUsers",
+                                            operationId = "obtenerUsuarios",
+                                            description = "Link a todos los usuarios",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "$request.query.page"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "sortBy", expression = "$request.query.sortBy"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "direction", expression = "$request.query.direction")
+                                            }
+                                    )
+                            }
+                    ),
+                    @ApiResponse(responseCode = "404", description = "Usuario no encontrado", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "No tiene permisos suficientes", content = @Content)
+            }
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Detalles del usuario", content = @Content(schema = @Schema(implementation = User.class))),
-            @ApiResponse(responseCode = "404", description = "Usuario no encontrado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "No tiene permisos suficientes", content = @Content)
-    })
     public ResponseEntity<EntityModel<User>> obtenerUsuario(
             @Parameter(description = "Correo del usuario", required = true) @PathVariable String email) {
         User usuario = userService.obtenerUsuario(email);
@@ -77,15 +100,74 @@ public class UserController {
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     @Operation(
+            operationId = "obtenerUsuarios",
             summary = "Obtener lista de usuarios paginada",
             description = "Obtiene una lista paginada de usuarios, accesible para todos los usuarios autenticados.",
-            operationId = "obtenerUsuarios"
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Lista de usuarios",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = PagedModel.class)),
+                            links = {
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "self",
+                                            operationId = "obtenerUsuarios",
+                                            description = "Link a la página actual",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "$request.query.page"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "sortBy", expression = "$request.query.sortBy"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "direction", expression = "$request.query.direction")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "nextPage",
+                                            operationId = "obtenerUsuarios",
+                                            description = "Link a la siguiente página",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "$request.query.page + 1"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "prevPage",
+                                            operationId = "obtenerUsuarios",
+                                            description = "Link a la página anterior",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "$request.query.page - 1"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "firstPage",
+                                            operationId = "obtenerUsuarios",
+                                            description = "Link a la primera página",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "0"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "lastPage",
+                                            operationId = "obtenerUsuarios",
+                                            description = "Link a la última página",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "$response.body.totalPages - 1"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size")
+                                            }
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "userDetails",
+                                            operationId = "obtenerUsuario",
+                                            description = "Link a un usuario específico",
+                                            parameters = @io.swagger.v3.oas.annotations.links.LinkParameter(name = "email", expression = "$response.body.content[0].email")
+                                    )
+                            }
+                    ),
+                    @ApiResponse(responseCode = "204", description = "No hay contenido"),
+                    @ApiResponse(responseCode = "403", description = "No tiene permisos para acceder a este recurso")
+            }
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Lista de usuarios", content = @Content(schema = @Schema(implementation = PagedModel.class))),
-            @ApiResponse(responseCode = "204", description = "No hay contenido", content = @Content),
-            @ApiResponse(responseCode = "403", description = "No tiene permisos para acceder a este recurso", content = @Content)
-    })
     public ResponseEntity<PagedModel<EntityModel<User>>> obtenerUsuarios(
             @Parameter(description = "Página a obtener") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Cantidad de elementos por página") @RequestParam(defaultValue = "10") int size,
@@ -115,15 +197,41 @@ public class UserController {
 
     @PostMapping
     @Operation(
+            operationId = "crearUsuario",
             summary = "Crear un nuevo usuario",
             description = "Permite a cualquier persona crear un nuevo usuario en la aplicación.",
-            operationId = "crearUsuario"
+            responses = {
+                    @ApiResponse(
+                            responseCode = "201",
+                            description = "Usuario creado con éxito",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = User.class)),
+                            links = {
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "self",
+                                            operationId = "crearUsuario",
+                                            description = "Link al usuario creado",
+                                            parameters = {
+                                                @io.swagger.v3.oas.annotations.links.LinkParameter(name = "email", expression = "$request.body.email")
+                                            }
+
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "allUsers",
+                                            operationId = "obtenerUsuarios",
+                                            description = "Link a todos los usuarios",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "$request.query.page"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "sortBy", expression = "$request.query.sortBy"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "direction", expression = "$request.query.direction")
+                                            }
+                                    )
+                            }
+                    ),
+                    @ApiResponse(responseCode = "409", description = "El usuario ya existe", content = @Content),
+                    @ApiResponse(responseCode = "400", description = "Datos de usuario no válidos", content = @Content)
+            }
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Usuario creado con éxito", content = @Content(schema = @Schema(implementation = User.class))),
-            @ApiResponse(responseCode = "409", description = "El usuario ya existe", content = @Content),
-            @ApiResponse(responseCode = "400", description = "Datos de usuario no válidos", content = @Content)
-    })
     public ResponseEntity<?> crearUsuario(
             @Parameter(description = "Detalles del usuario a crear") @RequestBody @Valid User user) {
         if (userService.obtenerUsuario(user.getEmail()) != null) {
@@ -142,15 +250,32 @@ public class UserController {
     @DeleteMapping("/{email}")
     @PreAuthorize("#email == authentication.name")
     @Operation(
+            operationId = "eliminarUsuario",
             summary = "Eliminar un usuario",
             description = "Permite al propio usuario eliminar su cuenta.",
-            operationId = "eliminarUsuario"
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Usuario eliminado con éxito",
+                            content = @Content(mediaType = "application/json"),
+                            links = {
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "allUsers",
+                                            operationId = "obtenerUsuarios",
+                                            description = "Link a todos los usuarios",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "$request.query.page"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "sortBy", expression = "$request.query.sortBy"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "direction", expression = "$request.query.direction")
+                                            }
+                                    )
+                            }
+                    ),
+                    @ApiResponse(responseCode = "404", description = "Usuario no encontrado", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "No tiene permisos para eliminar este usuario", content = @Content)
+            }
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Usuario eliminado con éxito", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Usuario no encontrado", content = @Content),
-            @ApiResponse(responseCode = "403", description = "No tiene permisos para eliminar este usuario", content = @Content)
-    })
     public ResponseEntity<EntityModel<User>> eliminarUsuario(
             @Parameter(description = "Correo del usuario a eliminar") @PathVariable String email) {
         User usuario = userService.obtenerUsuario(email);
@@ -167,16 +292,39 @@ public class UserController {
     @PatchMapping(path = "/{email}")
     @PreAuthorize("#email == authentication.name")
     @Operation(
+            operationId = "modificarUsuario",
             summary = "Modificar usuario",
             description = "Permite modificar atributos de la cuenta del usuario.",
-            operationId = "modificarUsuario"
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Usuario modificado con éxito",
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = User.class)),
+                            links = {
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "self",
+                                            operationId = "modificarUsuario",
+                                            description = "Link al usuario modificado",
+                                            parameters = @io.swagger.v3.oas.annotations.links.LinkParameter(name = "email", expression = "$request.path.email")
+                                    ),
+                                    @io.swagger.v3.oas.annotations.links.Link(
+                                            name = "allUsers",
+                                            operationId = "obtenerUsuarios",
+                                            description = "Link a todos los usuarios",
+                                            parameters = {
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "page", expression = "$request.query.page"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "size", expression = "$request.query.size"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "sortBy", expression = "$request.query.sortBy"),
+                                                    @io.swagger.v3.oas.annotations.links.LinkParameter(name = "direction", expression = "$request.query.direction")
+                                            }
+                                    )
+                            }
+                    ),
+                    @ApiResponse(responseCode = "404", description = "Usuario no encontrado", content = @Content),
+                    @ApiResponse(responseCode = "400", description = "Modificación no permitida", content = @Content),
+                    @ApiResponse(responseCode = "403", description = "No tiene permisos para modificar este usuario", content = @Content)
+            }
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Usuario modificado con éxito", content = @Content(schema = @Schema(implementation = User.class))),
-            @ApiResponse(responseCode = "404", description = "Usuario no encontrado", content = @Content),
-            @ApiResponse(responseCode = "400", description = "Modificación no permitida", content = @Content),
-            @ApiResponse(responseCode = "403", description = "No tiene permisos para modificar este usuario", content = @Content)
-    })
     public ResponseEntity<?> modificarUsuario(
             @Parameter(description = "Correo del usuario a modificar") @PathVariable("email") String email,
             @Parameter(description = "Lista de cambios") @RequestBody List<Map<String, Object>> updates) {
@@ -252,7 +400,7 @@ public class UserController {
             operationId = "anhadirAmigo"
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Amigo añadido con éxito", content = @Content(schema = @Schema(implementation = User.class))),
+            @ApiResponse(responseCode = "200", description = "Amigo añadido con éxito", content = @Content(mediaType = "application/json",schema = @Schema(implementation = User.class))),
             @ApiResponse(responseCode = "404", description = "Usuario o amigo no encontrado", content = @Content),
             @ApiResponse(responseCode = "400", description = "Intento de añadir al propio usuario como amigo", content = @Content),
             @ApiResponse(responseCode = "409", description = "El amigo ya existe en la lista de amigos", content = @Content),
