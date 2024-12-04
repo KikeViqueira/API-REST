@@ -3,8 +3,6 @@ package com.example.proyectoparte1.filter;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -23,7 +21,7 @@ import java.util.List;
 public class AuthorizationFilter extends BasicAuthenticationFilter {
     private final Key key;
 
-    public AuthorizationFilter(AuthenticationManager manager, Key key) {
+    public AuthorizationFilter(AuthenticationManager manager, Key key){
         super(manager);
         this.key = key;
     }
@@ -31,54 +29,48 @@ public class AuthorizationFilter extends BasicAuthenticationFilter {
     // Método a executar cando se comproba o control de acceso
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
-        try {
+        try{
+            // Lemos o token da cabeceira "Authentication"
             String header = request.getHeader("Authorization");
 
-            // Verificamos si hay un token y si empieza con "Bearer"
-            if (header == null || !header.startsWith("Bearer ")) {
+            // Se non hai un token, ou non comeza co string "Bearer" (é dicir, non é un token JWT)
+            // pasamos seguimos executando a cadea de filtros, e non facemos nada mais neste
+            if(header == null || !header.startsWith("Bearer")){
                 chain.doFilter(request, response);
                 return;
             }
 
-            // Intentamos autenticar el token
+            // No caso de que o token sexa un JWT, comprobamos que sexa valido
             UsernamePasswordAuthenticationToken authentication = getAuthentication(header);
 
-            if (authentication != null) {
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            } else {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Token invalido o no autenticado");
-                return;
-            }
+            // Se o token era válido, establecemolo no contexto de seguridade de Spring para poder empregalo
+            // nos nosos servizos
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
             chain.doFilter(request, response);
-        } catch (ExpiredJwtException e) {
-            response.setStatus(419); // Error personalizado para token expirado
-            response.getWriter().write("Token expirado");
-        } catch (Exception e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Token no valido o firma incorrecta");
+        } catch(ExpiredJwtException e){
+            // Se se sobrepasou a duración do token devolvemos un erro 419.
+            response.setStatus(419);
         }
     }
 
-    private UsernamePasswordAuthenticationToken getAuthentication(String token) {
-        try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token.replace("Bearer ", "").trim())
-                    .getBody();
+    private UsernamePasswordAuthenticationToken getAuthentication(String token) throws ExpiredJwtException {
+        // Creamos un parser para o token coa clave de firmado da nosa aplicación
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                // Parseamos o corpo do token
+                .parseClaimsJws(token.replace("Bearer", "").trim())
+                .getBody();
 
-            String user = claims.getSubject();
-            List<GrantedAuthority> authorities = AuthorityUtils.commaSeparatedStringToAuthorityList(String.join(",", (List) claims.get("roles")));
+        // Obtemos o nome do propietario do token
+        String user = claims.getSubject();
 
-            return user == null ? null : new UsernamePasswordAuthenticationToken(user, token, authorities);
+        // Obtemos o listado de roles do usuario
+        List<GrantedAuthority> authorities = AuthorityUtils.commaSeparatedStringToAuthorityList(String.join(",",(List)claims.get("roles")));
 
-        } catch (ExpiredJwtException e) {
-            throw e; // Dejar que se capture en `doFilterInternal`
-        } catch (Exception e) {
-            return null; // Devolvemos null si el token no es válido
-        }
+        // Devolvemos o token interno de Spring, que será engadido no contexto.
+        return user == null ? null : new UsernamePasswordAuthenticationToken(user, token, authorities);
     }
 
 }

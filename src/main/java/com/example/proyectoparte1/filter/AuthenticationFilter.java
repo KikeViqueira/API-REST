@@ -83,9 +83,11 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
                 // Asinamos o token coa nosa clave secreta
                 .signWith(key, SignatureAlgorithm.HS512);
 
-        // Envía el token en el encabezado de la respuesta para que el cliente pueda usarlo en solicitudes futuras
-        response.addHeader("Authentication", String.format("Bearer %s", tokenBuilder.compact()));
+        // Engadimos o token á resposta na cabeceira "Authorization"
+        response.addHeader("Authorization", String.format("Bearer %s", tokenBuilder.compact()));
+
+        // Permitir que el header Authorization sea visible en CORS
+        response.addHeader("Access-Control-Expose-Headers", "Authorization");
     }
 
 }
-

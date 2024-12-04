@@ -116,13 +116,12 @@ public class MovieController {
                                     )
                             }
                     ),
-                    @ApiResponse(responseCode = "204", description = "No hay contenido", content = @Content),
                     @ApiResponse(responseCode = "403", description = "No tiene permisos para acceder a este recurso", content = @Content)
             }
     )
     public ResponseEntity<PagedModel<EntityModel<Movie>>> obtenerTodasPeliculas(
             @Parameter(description = "Palabra clave") @RequestParam(required = false) String keyword,
-            @Parameter(description = "Géneros de la película") @RequestParam(required = false) String genres,
+            @Parameter(description = "Género de la película") @RequestParam(required = false) String genre,
             @Parameter(description = "Fecha de lanzamiento (formato: dd-MM-yyyy)") @RequestParam(required = false) String releaseDate,
             @Parameter(description = "Nombre del equipo de producción") @RequestParam(required = false) String crew,
             @Parameter(description = "Nombre del reparto") @RequestParam(required = false) String cast,
@@ -143,9 +142,9 @@ public class MovieController {
             size = 10;
         }
 
-        Page<Movie> peliculas = movieService.obtenerTodasMovies(keyword, genres, convertedReleaseDate, crew, cast, page, size, sortBy, direction);
-        if (peliculas.isEmpty()) return ResponseEntity.noContent().build();
-
+        Page<Movie> peliculas = movieService.obtenerTodasMovies(keyword, genre, convertedReleaseDate, crew, cast, page, size, sortBy, direction);
+        
+        // Siempre devolver un 200 con la lista vacía en lugar de 204
         List<EntityModel<Movie>> movieModels = peliculas.getContent().stream()
                 .map(pelicula -> EntityModel.of(pelicula,
                         WebMvcLinkBuilder.linkTo(methodOn(MovieController.class).obtenerPelicula(pelicula.getId())).withSelfRel()))
@@ -154,12 +153,9 @@ public class MovieController {
         PagedModel<EntityModel<Movie>> pagedModel = PagedModel.of(
                 movieModels,
                 new PagedModel.PageMetadata(peliculas.getSize(), peliculas.getNumber(), peliculas.getTotalElements()),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas(keyword, genres, releaseDate, crew, cast, page, size, sortBy, direction)).withSelfRel()
+                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas(keyword, genre, releaseDate, crew, cast, page, size, sortBy, direction)).withSelfRel()
         );
 
-        if (page > 0) {
-            pagedModel.add(WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(MovieController.class).obtenerTodasPeliculas(keyword, genres, releaseDate, crew, cast, page - 1, size, sortBy, direction)).withRel("prev-page"));
-        }
         return ResponseEntity.ok(pagedModel);
     }
 

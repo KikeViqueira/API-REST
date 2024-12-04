@@ -1,6 +1,6 @@
 package com.example.proyectoparte1.model;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -62,12 +62,15 @@ public class User {
             description = "Lista de amigos del usuario, cada uno representado con sus datos básicos (nombre y email)",
             example = "[{\"email\": \"amigo1@example.com\", \"name\": \"Amigo Uno\"}, {\"email\": \"amigo2@example.com\", \"name\": \"Amigo Dos\"}]"
     )
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "email")
+    @JsonIdentityReference(alwaysAsId = true)
     private List<User> friends;
 
     @Schema(
             description = "Contraseña encriptada del usuario. No se muestra en las respuestas",
             example = "encrypted_password"
     )
+    @JsonIgnore
     private String password;
 
     @Schema(

@@ -51,16 +51,10 @@ public class MovieService {
 
     public Page<Movie> obtenerTodasMovies(String keyword, String genre, DateCustom releaseDate, String crew, String cast, int page, int size, String sortBy, String direction) {
         PageRequest pageRequest = PageRequest.of(page, size, Sort.Direction.fromString(direction), sortBy);
-        Query query = new Query();
+        Query query = new Query().with(pageRequest);
 
-        //Hacemos los distintos criterios para nuestra consulta
-
-        //Tenemos que mirar si el user ha buscado por el filtro de keywords
         if (keyword != null) {
-            /*Dentro de la lista de keywords usamos la expresión regular para encontrar las películas que la contengan en la lista de keywords
-            * La opción i significa que no distingue entre minúsculas y mayúsculas*/
-
-            query.addCriteria(Criteria.where("keywords").regex(keyword, "s"));
+            query.addCriteria(Criteria.where("keywords").regex(keyword, "i"));
         }
 
         if(genre != null) {
@@ -68,7 +62,6 @@ public class MovieService {
         }
 
         if(releaseDate != null) {
-
             query.addCriteria(Criteria.where("releaseDate").is(releaseDate));
         }
 
@@ -80,16 +73,18 @@ public class MovieService {
             query.addCriteria(Criteria.where("cast.name").regex(cast, "i"));
         }
 
-        //Recuperamos las movies con la consulta personalizada
+        // Obtener el total de documentos que coinciden con la consulta
+        long total = mongoTemplate.count(query, Movie.class);
+        
+        // Obtener solo los documentos de la página actual
         List<Movie> movies = mongoTemplate.find(query, Movie.class);
-        long count = mongoTemplate.count(query, Movie.class);
+        
+        // Convertir los resultados al formato específico
+        List<Movie> moviesFiltradas = movies.stream()
+            .map(this::movieConParametrosEspecificos)
+            .collect(Collectors.toList());
 
-        //tenemos que pasar las movies al objeto movie específico para ensear los atributos que se piden en la salida
-        List<Movie> moviesFiltradas = movies.stream().map(this::movieConParametrosEspecificos).toList();
-
-        //Clase que en base a la info que tenemos crea automaticamente las pages en base a sus cálculos
-        return new PageImpl<>(moviesFiltradas, pageRequest, count);
-
+        return new PageImpl<>(moviesFiltradas, pageRequest, total);
     }
 
 
@@ -134,5 +129,3 @@ public class MovieService {
         movieRepository.deleteById(id);
     }
 }
-
-
