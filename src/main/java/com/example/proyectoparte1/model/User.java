@@ -70,7 +70,6 @@ public class User {
             description = "Contraseña encriptada del usuario. No se muestra en las respuestas",
             example = "encrypted_password"
     )
-    @JsonIgnore
     private String password;
 
     @Schema(
