@@ -62,8 +62,7 @@ public class User {
             description = "Lista de amigos del usuario, cada uno representado con sus datos básicos (nombre y email)",
             example = "[{\"email\": \"amigo1@example.com\", \"name\": \"Amigo Uno\"}, {\"email\": \"amigo2@example.com\", \"name\": \"Amigo Dos\"}]"
     )
-    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "email")
-    @JsonIdentityReference(alwaysAsId = true)
+
     private List<User> friends;
 
     @Schema(

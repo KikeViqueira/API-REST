@@ -306,7 +306,7 @@ public class MovieController {
     public ResponseEntity<?> modificarPelicula(
             @Parameter(description = "ID de la película a modificar", required = true) @PathVariable String movieId,
             @Parameter(description = "Lista de modificaciones") @RequestBody List<Map<String, Object>> updates) {
-
+        System.out.println("Modificando pelicula...");
         try {
             Movie movie = movieService.obtenerMovie(movieId);
             if (movie == null) {
