@@ -90,13 +90,10 @@ public class UserController {
         if (usuario == null) {
             return ResponseEntity.notFound().build();
         }
-        System.out.println(usuario);
         EntityModel<User> resource = EntityModel.of(usuario,
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuario(email)).withSelfRel(),
                 WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).obtenerUsuarios(0, 10, "email", "DESC")).withRel("all-users")
         );
-
-        System.out.println(resource.toString());
         return ResponseEntity.ok(resource);
     }
 

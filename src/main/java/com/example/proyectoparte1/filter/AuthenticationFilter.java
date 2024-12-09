@@ -45,11 +45,21 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
             // Obtemos o obxecto JSON do body da request HTTP
             JsonNode credentials = new ObjectMapper().readValue(request.getInputStream(), JsonNode.class);
 
+            String email = credentials.get("email") != null ? credentials.get("email").textValue() : null;
+            String password = credentials.get("password") != null ? credentials.get("password").textValue() : null;
+            System.out.println(email);
+            System.out.println(password);
+
+            if (email == null || password == null) {
+                throw new IllegalArgumentException("Email or password cannot be null");
+            }
+
+
             // Tentamos autenticarnos coas credenciais proporcionadas
             return manager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            credentials.get("email").textValue(),
-                            credentials.get("password").textValue()
+                            email,
+                            password
                     )
             );
             //En caso de que el login falle se devuelve un 401 (no autorizado), en caso de éxito Spring boot llama automáticamente a succesfulAuthentication
