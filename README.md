@@ -63,8 +63,8 @@ This project has been developed collaboratively in pairs, showcasing teamwork an
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-repository-name.git
-   cd your-repository-name
+   git clone https://github.com/KikeViqueira/API-REST
+   cd API-REST
 
 2. **Run MongoDB: Ensure MongoDB is running locally on port 27017.**
 
